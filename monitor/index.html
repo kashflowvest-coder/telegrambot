@@ -272,9 +272,20 @@
     .sidebar { display: flex; flex-direction: column; gap: 20px; }
 
     /* ── Client Table ──────────────────────────────────────── */
-    #client-list-body { overflow-y: auto; max-height: 340px; }
+    #client-list-body { overflow-y: auto; max-height: 420px; }
+    .client-table-header {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 8px;
+      padding: 8px 20px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--muted);
+    }
     .client-row {
-      display: flex; align-items: center; gap: 12px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px; align-items: center;
       padding: 10px 20px;
       border-bottom: 1px solid rgba(255,255,255,0.035);
       transition: background 0.2s;
@@ -291,10 +302,21 @@
       font-size: 0.9rem; font-weight: 700; color: #fff;
       flex-shrink: 0;
     }
-    .client-info { flex: 1; min-width: 0; }
+    .client-info { min-width: 0; }
     .client-name { font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .client-uid  { font-size: 0.71rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
-    .client-time { font-size: 0.7rem; color: var(--muted); white-space: nowrap; }
+    .client-right { text-align: right; flex-shrink: 0; }
+    .deposit-badge {
+      font-size: 0.78rem; font-weight: 700;
+      color: var(--yellow);
+      font-family: 'JetBrains Mono', monospace;
+      white-space: nowrap;
+    }
+    .deposit-badge.zero { color: var(--muted); font-weight: 400; }
+    .txn-count {
+      font-size: 0.68rem; color: var(--muted2); margin-top: 1px;
+    }
+    .client-time { font-size: 0.68rem; color: var(--muted); white-space: nowrap; }
 
     /* ── Event Type Donut ──────────────────────────────────── */
     .donut-wrap { padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
@@ -432,8 +454,13 @@
       <!-- Recent Clients panel -->
       <div class="panel">
         <div class="panel-header">
-          <div class="panel-title">👥 Recent Clients</div>
+          <div class="panel-title">👥 Clients &amp; Deposits</div>
           <span class="panel-badge" id="client-count">0</span>
+        </div>
+        <div class="client-table-header">
+          <span>Client</span>
+          <span>Txns</span>
+          <span>Total Dep.</span>
         </div>
         <div id="client-list-body">
           <div class="feed-empty" id="client-empty" style="height:120px">
@@ -650,48 +677,64 @@ function addFeedItem(ev) {
   if (ev.user_id) updateClientEntry(ev);
 }
 
-// ── Client Sidebar ──────────────────────────────────────────
+// ── Client Sidebar (live feed updates) ──────────────────────
 function updateClientEntry(ev) {
-  const uid = ev.user_id;
-  clientsMap.set(uid, {
-    first_name: ev.first_name || '',
-    username: ev.username || '',
-    ts: ev.ts,
-    type: ev.type,
-  });
-
-  const empty = document.getElementById('client-empty');
-  if (empty) empty.remove();
-  document.getElementById('client-count').textContent = clientsMap.size;
-
-  renderClientList();
+  // Just trigger a reload from the API when a new event comes in
+  loadClients();
 }
 
-function renderClientList() {
-  const body = document.getElementById('client-list-body');
-  // Remove old rows
-  body.querySelectorAll('.client-row').forEach(el => el.remove());
+// ── Load Clients from API ────────────────────────────────────
+function loadClients() {
+  fetch('/api/clients')
+    .then(r => r.json())
+    .then(clients => {
+      if (!Array.isArray(clients)) return;
+      const body = document.getElementById('client-list-body');
+      // Remove old rows
+      body.querySelectorAll('.client-row').forEach(el => el.remove());
+      const empty = document.getElementById('client-empty');
+      if (clients.length === 0) return;
+      if (empty) empty.remove();
+      document.getElementById('client-count').textContent = clients.length;
 
-  // Sort by most recent
-  const sorted = [...clientsMap.entries()]
-    .sort((a,b) => new Date(b[1].ts) - new Date(a[1].ts))
-    .slice(0, MAX_CLIENTS);
+      clients.slice(0, MAX_CLIENTS).forEach(data => {
+        const name = data.first_name || data.username || `User ${data.user_id}`;
+        const handle = data.username ? `@${data.username}` : `#${data.user_id}`;
+        // Country flag from lang
+        let flag = '';
+        if (data.lang) {
+          const c = data.lang.toLowerCase();
+          if (c.startsWith('en')) flag = '🇬🇧';
+          else if (c.startsWith('pl')) flag = '🇵🇱';
+          else if (c.startsWith('ru')) flag = '🇷🇺';
+          else if (c.startsWith('uk')) flag = '🇺🇦';
+          else if (c.startsWith('fr')) flag = '🇫🇷';
+          else if (c.startsWith('de')) flag = '🇩🇪';
+          else if (c.startsWith('es')) flag = '🇪🇸';
+          else if (c.startsWith('zh')) flag = '🇨🇳';
+        }
+        const dep = data.total_deposited || 0;
+        const txns = data.deposit_count || 0;
+        const depStr = dep > 0 ? `$${dep.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '—';
+        const depClass = dep > 0 ? 'deposit-badge' : 'deposit-badge zero';
 
-  sorted.forEach(([uid, data]) => {
-    const row = document.createElement('div');
-    row.className = 'client-row';
-    const name = data.first_name || data.username || `User ${uid}`;
-    const handle = data.username ? `@${data.username}` : `ID: ${uid}`;
-    row.innerHTML = `
-      <div class="avatar">${initials(name)}</div>
-      <div class="client-info">
-        <div class="client-name">${name}</div>
-        <div class="client-uid">${handle}</div>
-      </div>
-      <div class="client-time">${ago(data.ts)}</div>
-    `;
-    body.appendChild(row);
-  });
+        const row = document.createElement('div');
+        row.className = 'client-row';
+        row.innerHTML = `
+          <div class="avatar">${initials(name)}</div>
+          <div class="client-info">
+            <div class="client-name">${flag} ${name}</div>
+            <div class="client-uid">${handle} · ${ago(data.last_seen)}</div>
+          </div>
+          <div class="client-right">
+            <div class="${depClass}">${depStr}</div>
+            <div class="txn-count">${txns} txn${txns !== 1 ? 's' : ''}</div>
+          </div>
+        `;
+        body.appendChild(row);
+      });
+    })
+    .catch(() => {});
 }
 
 // ── Toast ────────────────────────────────────────────────────
@@ -805,8 +848,10 @@ updateClock();
 // ── Boot ──────────────────────────────────────────────────────
 fetchStats();
 loadHistory();
+loadClients();
 connectSSE();
 setInterval(fetchStats, STATS_INTERVAL);
+setInterval(loadClients, 30000);   // refresh client deposits every 30s
 setInterval(renderClientList, 15000); // refresh "ago" timestamps
 </script>
 </body>

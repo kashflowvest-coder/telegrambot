@@ -181,6 +181,56 @@ def api_stats():
 def api_activity():
     return jsonify(get_recent_activity(100))
 
+
+@app.route("/api/clients")
+def api_clients():
+    """Return per-user deposit summary: total deposited, deposit count, last seen."""
+    try:
+        db = _get_db()
+        activity_col = db.activity_log
+
+        # Get all events to build per-user profile
+        rows = list(activity_col.find({}, {
+            "user_id": 1, "username": 1, "first_name": 1,
+            "event_type": 1, "detail": 1, "ts": 1, "lang": 1
+        }).sort("_id", pymongo.DESCENDING).limit(5000))
+
+        clients = {}
+        for row in rows:
+            uid = row.get("user_id")
+            if not uid:
+                continue
+            uid = str(uid)
+            if uid not in clients:
+                clients[uid] = {
+                    "user_id": uid,
+                    "first_name": row.get("first_name", ""),
+                    "username": row.get("username", ""),
+                    "lang": row.get("lang", ""),
+                    "last_seen": row.get("ts", ""),
+                    "total_deposited": 0.0,
+                    "deposit_count": 0,
+                    "last_deposit": None,
+                }
+            # Parse deposit amount from detail string e.g. "$500.00 via USDT_TRC20 ..."
+            if row.get("event_type") == "deposit":
+                detail = row.get("detail", "")
+                try:
+                    # Extract dollar amount: "$500.00 via ..."
+                    amt_str = detail.split("$")[1].split(" ")[0].replace(",", "")
+                    clients[uid]["total_deposited"] += float(amt_str)
+                    clients[uid]["deposit_count"] += 1
+                    if not clients[uid]["last_deposit"]:
+                        clients[uid]["last_deposit"] = detail
+                except Exception:
+                    pass
+
+        # Sort by total deposited descending
+        result = sorted(clients.values(), key=lambda x: x["total_deposited"], reverse=True)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/health")
 def health():
     return jsonify({"status": "ok", "ts": datetime.utcnow().isoformat()})
