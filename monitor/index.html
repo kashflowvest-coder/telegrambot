@@ -602,6 +602,21 @@ function addFeedItem(ev) {
 
   const userName = ev.first_name || ev.username || `User ${ev.user_id || '?'}`;
   const userHandle = ev.username ? `@${ev.username}` : (ev.user_id ? `#${ev.user_id}` : '');
+  
+  // Map language code to country flag
+  let flag = '';
+  if (ev.lang) {
+    const code = ev.lang.toLowerCase();
+    if (code.startsWith('en')) flag = '🇬🇧/🇺🇸';
+    else if (code.startsWith('pl')) flag = '🇵🇱';
+    else if (code.startsWith('ru')) flag = '🇷🇺';
+    else if (code.startsWith('uk')) flag = '🇺🇦';
+    else if (code.startsWith('fr')) flag = '🇫🇷';
+    else if (code.startsWith('de')) flag = '🇩🇪';
+    else if (code.startsWith('es')) flag = '🇪🇸';
+    else if (code.startsWith('zh')) flag = '🇨🇳';
+    else flag = `(${code.toUpperCase()})`;
+  }
 
   item.innerHTML = `
     <div class="event-dot"></div>
@@ -609,7 +624,7 @@ function addFeedItem(ev) {
       <div class="event-top">
         <span class="event-type-badge badge-${ev.type}">${typeLabel(ev.type)}</span>
         <span class="event-user">${userName}</span>
-        <span class="event-username">${userHandle}</span>
+        <span class="event-username">${userHandle} ${flag}</span>
       </div>
       <div class="event-detail">${ev.detail || ev.action || ''}</div>
     </div>

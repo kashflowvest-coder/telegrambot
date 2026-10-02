@@ -165,6 +165,7 @@ def _persist_mongo(payload: dict):
             "detail": payload.get("detail"),
             "ts": payload.get("ts"),
             "epoch": payload.get("epoch"),
+            "lang": payload.get("lang"),
         }
         collection.insert_one(doc)
     except Exception:

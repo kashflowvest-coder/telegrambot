@@ -640,6 +640,7 @@ async def handle_deposit_command(update, context):
             "user_id": u.id, "username": u.username or "", "first_name": u.first_name or "",
             "action": "Deposit Request",
             "detail": f"${amount:,.2f} via {network} (TxID: {txid[:12]}…)",
+            "lang": lang,
         })
     except Exception:
         pass
@@ -1439,6 +1440,7 @@ async def handle_withdraw_command(update, context):
             "user_id": u.id, "username": u.username or "", "first_name": u.first_name or "",
             "action": "Withdrawal Request",
             "detail": f"${amount:,.2f} via {network} to {address[:10]}…",
+            "lang": lang,
         })
     except Exception:
         pass
@@ -1482,6 +1484,7 @@ async def handle_text_message(update, context):
             "first_name": u.first_name or "",
             "action": "Menu Tap",
             "detail": raw_text[:80],
+            "lang": lang,
         })
     except Exception:
         pass
