@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Live Traffic Monitor — AI Trading Bot</title>
   <meta name="description" content="Real-time client traffic monitor for the AI Automated Trading Telegram Bot">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📡</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -422,6 +423,12 @@
       <div class="stat-value" id="stat-deposits" style="--val-color: linear-gradient(90deg,#fbbf24,#10f08c)">—</div>
       <div class="stat-delta">Awaiting review</div>
     </div>
+    <div class="stat-card" style="--accent-line: linear-gradient(90deg,#10f08c,#fb923c)">
+      <div class="stat-icon">💵</div>
+      <div class="stat-label">Total Volume</div>
+      <div class="stat-value" id="stat-volume" style="--val-color: linear-gradient(90deg,#10f08c,#fb923c); font-size:1.3rem">—</div>
+      <div class="stat-delta">All-time deposits</div>
+    </div>
   </div>
 
   <!-- Body Grid -->
@@ -697,6 +704,15 @@ function loadClients() {
       if (empty) empty.remove();
       document.getElementById('client-count').textContent = clients.length;
 
+      // Calculate and display total volume
+      const totalVol = clients.reduce((sum, c) => sum + (c.total_deposited || 0), 0);
+      const volEl = document.getElementById('stat-volume');
+      if (volEl) {
+        volEl.textContent = totalVol > 0
+          ? `$${totalVol.toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0})}`
+          : '$0';
+      }
+
       clients.slice(0, MAX_CLIENTS).forEach(data => {
         const name = data.first_name || data.username || `User ${data.user_id}`;
         const handle = data.username ? `@${data.username}` : `#${data.user_id}`;
@@ -802,11 +818,13 @@ function connectSSE() {
       addFeedItem(ev);
       // Show toast for high-value events
       if (ev.type === 'new_user') {
-        showToast('🆕', `New Client: ${ev.first_name || ev.username || 'User'}`, ev.detail || '');
+        showToast('🆕', `New Client: ${ev.first_name || ev.username || 'User'}`, ev.detail || 'Just joined');
       } else if (ev.type === 'deposit') {
-        showToast('💰', 'Deposit Request', ev.detail || '');
+        const depAmt = ev.detail ? ev.detail.split(' ')[0] : '';
+        showToast('💰', `Deposit ${depAmt}`, `${ev.first_name || ev.username || 'User'} · ${ev.detail || ''}`);
       } else if (ev.type === 'withdraw') {
-        showToast('🕊', 'Withdrawal Request', ev.detail || '');
+        const wdAmt = ev.detail ? ev.detail.split(' ')[0] : '';
+        showToast('🕊️', `Withdrawal ${wdAmt}`, `${ev.first_name || ev.username || 'User'} · ${ev.detail || ''}`);
       }
       // Refresh stats on each event
       fetchStats();
@@ -851,8 +869,7 @@ loadHistory();
 loadClients();
 connectSSE();
 setInterval(fetchStats, STATS_INTERVAL);
-setInterval(loadClients, 30000);   // refresh client deposits every 30s
-setInterval(renderClientList, 15000); // refresh "ago" timestamps
+setInterval(loadClients, 30000);  // refresh client deposits + volume every 30s
 </script>
 </body>
 </html>
