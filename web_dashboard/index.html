@@ -1,0 +1,2225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Automated Trading Bot — Command Center & Telegram Simulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #070a13;
+      --card-bg: rgba(14, 21, 37, 0.72);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent-cyan: #00f2fe;
+      --accent-blue: #38bdf8;
+      --accent-purple: #8b5cf6;
+      --green: #00e676;
+      --green-glow: rgba(0, 230, 118, 0.25);
+      --red: #ff3366;
+      --red-glow: rgba(255, 51, 102, 0.25);
+      --tg-bg: #0f1826;
+      --tg-header: #1b263b;
+      --tg-bubble: #162438;
+      --tg-btn: #254468;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: radial-gradient(circle at 10% 15%, #0d1933 0%, var(--bg-dark) 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Top Live Ticker Ribbon */
+    .top-ribbon {
+      background: rgba(7, 10, 19, 0.88);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--card-border);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 0 20px rgba(0, 242, 254, 0.35);
+    }
+
+    .brand-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(90deg, #fff, #cbd5e1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .live-tickers {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .ticker-chip {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--card-border);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .ticker-chip:hover {
+      border-color: var(--accent-cyan);
+      background: rgba(0, 242, 254, 0.05);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 230, 118, 0.1);
+      border: 1px solid rgba(0, 230, 118, 0.3);
+      color: var(--green);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 10px var(--green);
+      animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.35; transform: scale(0.85); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* Controls at top right */
+    .top-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .lang-toggle-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--card-border);
+      color: #fff;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .lang-toggle-btn:hover {
+      background: rgba(0, 242, 254, 0.15);
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+    }
+
+    .sound-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--card-border);
+      color: #fff;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 15px;
+      transition: all 0.2s;
+    }
+
+    .sound-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    /* Main Container Grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 480px 1fr;
+      gap: 24px;
+      padding: 24px;
+      max-width: 1720px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 1200px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+      .live-tickers {
+        display: none;
+      }
+    }
+
+    /* Telegram App Mobile Mockup */
+    .tg-phone-frame {
+      background: #0e1621;
+      border-radius: 36px;
+      border: 4px solid #1e293b;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(0, 242, 254, 0.12);
+      display: flex;
+      flex-direction: column;
+      height: 960px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Android Mobile Status Bar */
+    .tg-status-bar {
+      background: #17212b;
+      padding: 10px 18px 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      user-select: none;
+      letter-spacing: 0.02em;
+    }
+
+    .status-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-time {
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .status-island {
+      background: #000;
+      padding: 3px 12px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.68rem;
+      color: var(--accent-cyan);
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .island-indicator {
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    .status-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+    }
+
+    /* Telegram Header Bar */
+    .tg-top-bar {
+      background: #17212b;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      user-select: none;
+    }
+
+    .tg-back-btn {
+      cursor: pointer;
+      color: #8da4be;
+      display: flex;
+      align-items: center;
+      transition: color 0.2s;
+    }
+
+    .tg-back-btn:hover {
+      color: #fff;
+    }
+
+    .tg-avatar-wrap {
+      position: relative;
+    }
+
+    .tg-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      overflow: hidden;
+      background: #0f172a;
+      border: 1.5px solid rgba(0, 242, 254, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 12px rgba(0, 242, 254, 0.25);
+    }
+
+    .avatar-robot-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .tg-avatar-badge {
+      width: 11px;
+      height: 11px;
+      background: var(--green);
+      border: 2px solid #17212b;
+      border-radius: 50%;
+      position: absolute;
+      bottom: 0;
+      right: 0;
+    }
+
+    .tg-bot-info {
+      flex: 1;
+    }
+
+    .tg-bot-info h3 {
+      font-size: 0.98rem;
+      font-weight: 600;
+      color: #fff;
+      line-height: 1.2;
+    }
+
+    .tg-bot-info p {
+      font-size: 0.76rem;
+      color: #708499;
+    }
+
+    .tg-menu-dots {
+      background: none;
+      border: none;
+      color: #8da4be;
+      font-size: 1.35rem;
+      cursor: pointer;
+      padding: 4px;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+
+    .tg-menu-dots:hover {
+      color: #fff;
+    }
+
+    /* Telegram Chat Scroll Area */
+    .tg-chat-history {
+      flex: 1;
+      padding: 14px 14px 10px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      scroll-behavior: smooth;
+      background-color: #0e1621;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 0);
+      background-size: 16px 16px;
+    }
+
+    .tg-chat-history::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    .tg-chat-history::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+    }
+
+    /* Photo Banner Message Card */
+    .tg-banner-card {
+      position: relative;
+      max-width: 90%;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6), 0 0 25px rgba(0, 242, 254, 0.16);
+      border: 1px solid rgba(0, 242, 254, 0.25);
+      align-self: flex-start;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .tg-banner-img {
+      width: 100%;
+      display: block;
+      height: auto;
+      object-fit: cover;
+      max-height: 250px;
+    }
+
+    .tg-time-overlay {
+      position: absolute;
+      bottom: 8px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      color: #cbd5e1;
+      font-size: 0.68rem;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Message Bubbles */
+    .tg-msg {
+      max-width: 88%;
+      padding: 10px 14px 7px;
+      border-radius: 14px;
+      font-size: 0.86rem;
+      line-height: 1.45;
+      position: relative;
+      animation: fadeIn 0.25s ease-out;
+      word-break: break-word;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .tg-msg.bot {
+      background: #182533;
+      color: #e2e8f0;
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .tg-msg.user {
+      background: #2b5278;
+      color: #ffffff;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    .tg-time {
+      display: block;
+      text-align: right;
+      font-size: 0.66rem;
+      color: #6c7883;
+      margin-top: 3px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .tg-time-user {
+      font-size: 0.66rem;
+      color: #92bce6;
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .read-receipt {
+      color: #71b2f4;
+      font-weight: 700;
+    }
+
+    /* Verify & Activate Inline Button */
+    .tg-verify-btn {
+      width: 100%;
+      background: #242f3d;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #fff;
+      padding: 9px 14px;
+      border-radius: 8px;
+      font-size: 0.86rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .tg-verify-btn:hover {
+      background: #2b394a;
+      border-color: var(--green);
+      color: var(--green);
+      transform: translateY(-1px);
+    }
+
+    .verify-badge-active {
+      background: rgba(0, 230, 118, 0.15) !important;
+      border-color: var(--green) !important;
+      color: var(--green) !important;
+    }
+
+    /* Quick Chips for Amounts */
+    .tg-quick-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .tg-chip-btn {
+      background: rgba(36, 47, 61, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #7dd3fc;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      transition: all 0.2s;
+    }
+
+    .tg-chip-btn:hover {
+      background: #2b5687;
+      color: #fff;
+      border-color: var(--accent-cyan);
+    }
+
+    /* Crypto Selection Network Grid */
+    .tg-crypto-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .tg-crypto-btn {
+      background: #242f3d;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #e2e8f0;
+      padding: 8px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .tg-crypto-btn:hover {
+      background: #2b5687;
+      border-color: var(--accent-cyan);
+      color: #fff;
+    }
+
+    /* Telegram Input Bar Above Keyboard */
+    .tg-input-bar {
+      background: #17212b;
+      padding: 8px 12px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .tg-input-btn {
+      background: none;
+      border: none;
+      font-size: 1.25rem;
+      cursor: pointer;
+      color: #7e8d9f;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s, color 0.15s;
+    }
+
+    .tg-input-btn:hover {
+      transform: scale(1.1);
+      color: #fff;
+    }
+
+    .tg-input-wrapper {
+      flex: 1;
+      position: relative;
+    }
+
+    .tg-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.88rem;
+      outline: none;
+      padding: 6px 0;
+    }
+
+    .tg-input::placeholder {
+      color: #64748b;
+    }
+
+    .tg-mic-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #2ea6ff;
+      border: none;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.05rem;
+      transition: transform 0.2s, background 0.2s;
+      box-shadow: 0 2px 8px rgba(46, 166, 255, 0.35);
+    }
+
+    .tg-mic-btn:hover {
+      transform: scale(1.08);
+      background: #1998f5;
+    }
+
+    /* 7-Row Telegram Custom Reply Keyboard */
+    .tg-reply-keyboard {
+      background: #17212b;
+      padding: 6px 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      user-select: none;
+    }
+
+    .tg-kb-row {
+      display: flex;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .tg-kb-row.tg-kb-dual .tg-kb-btn {
+      flex: 1;
+    }
+
+    .tg-kb-btn {
+      background: #242f3d;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      color: #e2e8f0;
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .tg-kb-btn.tg-kb-full {
+      width: 100%;
+    }
+
+    .tg-kb-btn:hover {
+      background: #2b394a;
+      color: #38bdf8;
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+
+    .tg-kb-btn:active {
+      transform: scale(0.98);
+      background: #1e2937;
+    }
+
+    /* Right Side Dashboard Panels */
+    .dashboard-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .glass-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 22px;
+      padding: 22px;
+      backdrop-filter: blur(18px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      transition: border-color 0.3s;
+    }
+
+    .glass-card:hover {
+      border-color: rgba(255, 255, 255, 0.14);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Metric Stats Row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    @media (max-width: 900px) {
+      .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .stat-box {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 16px 18px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .stat-box:hover {
+      transform: translateY(-2px);
+      border-color: rgba(0, 242, 254, 0.3);
+    }
+
+    .stat-label {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: 1.48rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .stat-sub {
+      font-size: 0.76rem;
+      margin-top: 4px;
+    }
+
+    .color-green { color: var(--green); }
+    .color-red { color: var(--red); }
+    .color-cyan { color: var(--accent-cyan); }
+
+    /* Chart & AI Grid */
+    .chart-analysis-grid {
+      display: grid;
+      grid-template-columns: 1.45fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 1000px) {
+      .chart-analysis-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .timeframe-bar {
+      display: flex;
+      gap: 6px;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--card-border);
+    }
+
+    .tf-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .tf-btn.active, .tf-btn:hover {
+      background: var(--accent-cyan);
+      color: #070a13;
+    }
+
+    .canvas-container {
+      width: 100%;
+      height: 250px;
+      position: relative;
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    /* Signal Breakdown Gauge & Targets */
+    .signal-verdict-box {
+      background: rgba(0, 242, 254, 0.05);
+      border: 1px solid rgba(0, 242, 254, 0.25);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .verdict-tag {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    .confidence-meter {
+      text-align: right;
+    }
+
+    .confidence-bar {
+      width: 110px;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .confidence-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-cyan), var(--green));
+      width: 86.5%;
+      transition: width 0.5s ease;
+    }
+
+    .targets-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 0.85rem;
+    }
+
+    .target-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 9px 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Positions Table */
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    th {
+      text-align: left;
+      padding: 12px 14px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--card-border);
+      font-weight: 500;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    td {
+      padding: 13px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .action-btn-sm {
+      background: rgba(255, 51, 102, 0.15);
+      border: 1px solid rgba(255, 51, 102, 0.4);
+      color: var(--red);
+      padding: 5px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .action-btn-sm:hover {
+      background: var(--red);
+      color: white;
+    }
+
+    .primary-btn {
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.2), rgba(56, 189, 248, 0.2));
+      border: 1px solid var(--accent-cyan);
+      color: var(--accent-cyan);
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.82rem;
+      transition: all 0.2s;
+    }
+
+    .primary-btn:hover {
+      background: var(--accent-cyan);
+      color: #070a13;
+      box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+    }
+
+    /* Quick Trade Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(10px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-box {
+      background: #0f172a;
+      border: 1px solid rgba(0, 242, 254, 0.3);
+      border-radius: 20px;
+      padding: 26px;
+      width: 440px;
+      max-width: 90%;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 242, 254, 0.15);
+      animation: modalSlide 0.25s ease-out;
+    }
+
+    @keyframes modalSlide {
+      from { opacity: 0; transform: translateY(20px) scale(0.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .modal-form-group {
+      margin-bottom: 16px;
+    }
+
+    .modal-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      display: block;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .modal-select, .modal-input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: #fff;
+      font-family: inherit;
+      outline: none;
+    }
+
+    .modal-select:focus, .modal-input:focus {
+      border-color: var(--accent-cyan);
+    }
+
+    .preset-chips {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .preset-chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .preset-chip.active, .preset-chip:hover {
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+      background: rgba(0, 242, 254, 0.1);
+    }
+
+    .modal-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .btn-buy {
+      background: var(--green);
+      color: #070a13;
+      border: none;
+      padding: 12px;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .btn-sell {
+      background: var(--red);
+      color: #fff;
+      border: none;
+      padding: 12px;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .btn-buy:hover, .btn-sell:hover {
+      transform: scale(1.02);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Real-Time Header -->
+  <header class="top-ribbon">
+    <div class="brand-section">
+      <div class="brand-logo">🤖</div>
+      <div>
+        <div class="brand-title" id="txtBrandTitle">AI Automated Trading Bot</div>
+        <div style="font-size: 0.72rem; color: var(--text-muted);" id="txtBrandSub">Multi-Exchange Algorithmic Trading & Signal Engine</div>
+      </div>
+    </div>
+
+    <div class="live-tickers">
+      <div class="ticker-chip" onclick="switchPair('BTC/USDT')">
+        <span style="color: #f7931a; font-weight: 600;">BTC/USDT</span>
+        <span id="btcPrice">$84,520.00</span>
+        <span id="btcChange" class="color-green">+1.45%</span>
+      </div>
+      <div class="ticker-chip" onclick="switchPair('ETH/USDT')">
+        <span style="color: #627eea; font-weight: 600;">ETH/USDT</span>
+        <span id="ethPrice">$2,710.50</span>
+        <span id="ethChange" class="color-green">+0.82%</span>
+      </div>
+      <div class="ticker-chip" onclick="switchPair('SOL/USDT')">
+        <span style="color: #14f195; font-weight: 600;">SOL/USDT</span>
+        <span id="solPrice">$121.10</span>
+        <span id="solChange" class="color-red">-0.35%</span>
+      </div>
+    </div>
+
+    <div class="top-controls">
+      <button class="sound-btn" id="soundToggleBtn" onclick="toggleAudio()" title="Sound Effects">🔊</button>
+      <button class="lang-toggle-btn" id="langToggleBtn" onclick="toggleLanguage()">
+        <span>🌐</span> <b id="langLabel">PL / EN</b>
+      </button>
+      <div class="status-badge" id="txtEngineStatus">
+        <div class="pulse-dot"></div>
+        LIVE ENGINE ONLINE
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-grid">
+
+    <!-- Left Column: Telegram Bot Mobile Simulator -->
+    <div class="tg-phone-frame">
+      <!-- Top Android Status Bar -->
+      <div class="tg-status-bar">
+        <div class="status-left">
+          <span class="status-time">14:02</span>
+          <span class="status-icon">💬 1</span>
+          <span class="status-icon">📍</span>
+        </div>
+        <div class="status-island">
+          <span class="island-camera"></span>
+          <span class="island-indicator">((•)) 3</span>
+        </div>
+        <div class="status-right">
+          <span class="status-speed">1.20 KB/s</span>
+          <span class="status-signal">4.5G 📶</span>
+          <span class="status-battery">71% 🔋</span>
+        </div>
+      </div>
+
+      <!-- Telegram App Header -->
+      <div class="tg-top-bar">
+        <div class="tg-back-btn" onclick="soundClick()" title="Back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        </div>
+        <div class="tg-avatar-wrap">
+          <div class="tg-avatar">
+            <img src="assets/ai_trading_robot_banner.jpg" class="avatar-robot-img" alt="AI Robot">
+          </div>
+          <div class="tg-avatar-badge" id="tgHeaderStatusBadge"></div>
+        </div>
+        <div class="tg-bot-info">
+          <h3 id="txtTgBotName">Ai automated trading</h3>
+          <p id="txtTgBotHandle">bot</p>
+        </div>
+        <div class="tg-header-actions">
+          <button class="tg-menu-dots" onclick="soundClick()" title="Menu">⋮</button>
+        </div>
+      </div>
+
+      <!-- Telegram Chat Flow -->
+      <div class="tg-chat-history" id="tgChat">
+        <!-- Photo Banner Message Card -->
+        <div class="tg-banner-card">
+          <img src="assets/ai_trading_robot_banner.jpg" alt="Automated Trading AI" class="tg-banner-img">
+          <span class="tg-time-overlay">15:08</span>
+        </div>
+
+        <!-- Verification Bubble -->
+        <div class="tg-msg bot" id="msgVerificationBubble">
+          <div class="tg-msg-text">
+            🔐 <b>One-time Verification</b><br>
+            Tap the button below to verify & activate your bot.
+          </div>
+          <span class="tg-time">15:08</span>
+          <button class="tg-verify-btn" id="btnVerifyActivate" onclick="verifyAndActivate()">
+            <span>✅</span> <b>Verify & Activate</b>
+          </button>
+        </div>
+
+        <!-- Welcome Back Bubble -->
+        <div class="tg-msg bot" id="msgWelcomeBack">
+          <div class="tg-msg-text">Welcome back! Choose an option:</div>
+          <span class="tg-time">15:09</span>
+        </div>
+
+        <!-- User Message Bubble: Deposit -->
+        <div class="tg-msg user">
+          <span>💰 Deposit</span>
+          <span class="tg-time-user">15:09 <span class="read-receipt">✓✓</span></span>
+        </div>
+
+        <!-- Bot Reply: Deposit Cart -->
+        <div class="tg-msg bot" id="msgDepositCartInitial">
+          <div class="tg-msg-text">
+            🛒 <b>Deposit cart</b><br><br>
+            Enter the USD amount you want to deposit.<br>
+            Minimum: $ 100.00 usd<br><br>
+            Example: <code>`150`</code> or <code>`$150`</code>
+          </div>
+          <span class="tg-time">15:09</span>
+          <div class="tg-quick-chips">
+            <button class="tg-chip-btn" onclick="selectDepositAmount(100)">$100</button>
+            <button class="tg-chip-btn" onclick="selectDepositAmount(150)">$150</button>
+            <button class="tg-chip-btn" onclick="selectDepositAmount(250)">$250</button>
+            <button class="tg-chip-btn" onclick="selectDepositAmount(500)">$500</button>
+            <button class="tg-chip-btn" onclick="selectDepositAmount(1000)">$1,000</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Telegram Input Area Above Keyboard -->
+      <div class="tg-input-bar">
+        <button class="tg-input-btn" onclick="soundClick()" title="Emoji">😊</button>
+        <div class="tg-input-wrapper">
+          <input type="text" class="tg-input" id="tgInput" placeholder="Message" onkeydown="if(event.key==='Enter') sendCustomMessage()">
+        </div>
+        <button class="tg-input-btn" onclick="soundClick()" title="Attach">📎</button>
+        <button class="tg-mic-btn" onclick="sendCustomMessage()" title="Send / Mic">🎙️</button>
+      </div>
+
+      <!-- 7-Row Telegram Custom Reply Keyboard (matching the screenshot layout) -->
+      <div class="tg-reply-keyboard" id="tgReplyKeyboard">
+        <div class="tg-kb-row">
+          <button class="tg-kb-btn tg-kb-full" onclick="handleReplyButton('💰 Deposit')">💰 Deposit</button>
+        </div>
+        <div class="tg-kb-row tg-kb-dual">
+          <button class="tg-kb-btn" onclick="handleReplyButton('✅ User Reviews')">✅ User Reviews</button>
+          <button class="tg-kb-btn" onclick="handleReplyButton('📊 Profit Calculator')">📊 Profit Calculator</button>
+        </div>
+        <div class="tg-kb-row tg-kb-dual">
+          <button class="tg-kb-btn" onclick="handleReplyButton('📖 How It Works')">📖 How It Works</button>
+          <button class="tg-kb-btn" onclick="handleReplyButton('💬 Live Support')">💬 Live Support</button>
+        </div>
+        <div class="tg-kb-row">
+          <button class="tg-kb-btn tg-kb-full" onclick="handleReplyButton('📊 Live Charts')">📊 Live Charts</button>
+        </div>
+        <div class="tg-kb-row">
+          <button class="tg-kb-btn tg-kb-full" onclick="handleReplyButton('👤 My Account & Balance')">👤 My Account & Balance</button>
+        </div>
+        <div class="tg-kb-row tg-kb-dual">
+          <button class="tg-kb-btn" onclick="handleReplyButton('🏛️ About Us')">🏛️ About Us</button>
+          <button class="tg-kb-btn" onclick="handleReplyButton('ℹ️ FAQ')">ℹ️ FAQ</button>
+        </div>
+        <div class="tg-kb-row">
+          <button class="tg-kb-btn tg-kb-full" onclick="handleReplyButton('🕊️ Withdraw Funds')">🕊️ Withdraw Funds</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Live Trading Command Dashboard -->
+    <div class="dashboard-panel">
+
+      <!-- Stats Metrics -->
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-label" id="txtStatBalLabel">Paper Balance</div>
+          <div class="stat-value color-cyan" id="dashBalance">$10,000.00</div>
+          <div class="stat-sub" style="color: var(--text-muted);" id="txtStatBalSub">Available USDT</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label" id="txtStatPnlLabel">Total Realized PnL</div>
+          <div class="stat-value color-green" id="dashPnl">+$312.40</div>
+          <div class="stat-sub color-green" id="txtStatPnlSub">+3.12% Total Return</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label" id="txtStatWinLabel">AI Win Rate</div>
+          <div class="stat-value" id="dashWinRate">77.8%</div>
+          <div class="stat-sub" style="color: var(--text-muted);" id="txtStatWinSub">7 Wins / 2 Losses</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label" id="txtStatExpLabel">Active Exposure</div>
+          <div class="stat-value" id="dashExposure">$250.00</div>
+          <div class="stat-sub" style="color: var(--text-muted);" id="txtStatExpSub">1 Open Position</div>
+        </div>
+      </div>
+
+      <!-- Chart and AI Signal Card Grid -->
+      <div class="chart-analysis-grid">
+        <div class="glass-card">
+          <div class="card-header">
+            <div>
+              <div class="card-title" id="txtChartTitle">📈 BTC/USDT Live Trend & Indicators</div>
+              <div style="font-size: 0.78rem; color: var(--text-muted);" id="chartTimestamp">Real-time WebSocket Feed</div>
+            </div>
+            <div class="timeframe-bar">
+              <button class="tf-btn" onclick="changeTf(this, '5m')">5m</button>
+              <button class="tf-btn" onclick="changeTf(this, '15m')">15m</button>
+              <button class="tf-btn active" onclick="changeTf(this, '1h')">1h</button>
+              <button class="tf-btn" onclick="changeTf(this, '4h')">4h</button>
+            </div>
+          </div>
+          <div class="canvas-container">
+            <canvas id="priceCanvas"></canvas>
+          </div>
+        </div>
+
+        <!-- AI Engine Card -->
+        <div class="glass-card">
+          <div class="card-header">
+            <div class="card-title" id="txtAiHeader">🧠 AI Signal Engine</div>
+            <span class="status-badge" style="background: rgba(0, 242, 254, 0.1); border-color: rgba(0, 242, 254, 0.3); color: var(--accent-cyan);">QUANT 3.8</span>
+          </div>
+
+          <div class="signal-verdict-box">
+            <div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;" id="txtVerdictLabel">Verdict</div>
+              <div class="verdict-tag color-green" id="signalVerdict">🚀 STRONG BUY</div>
+            </div>
+            <div class="confidence-meter">
+              <div style="font-size: 0.75rem; color: var(--text-muted);" id="txtConfLabel">Confidence</div>
+              <div style="font-size: 1.15rem; font-weight: 700; color: #fff;" id="signalConf">86.5%</div>
+              <div class="confidence-bar">
+                <div class="confidence-fill" id="confFill"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="targets-list">
+            <div class="target-item">
+              <span id="txtTp1Label">🎯 Take Profit 1</span>
+              <span class="color-green" id="targetTp1">$86,400.00 (+2.2%)</span>
+            </div>
+            <div class="target-item">
+              <span id="txtTp2Label">🎯 Take Profit 2</span>
+              <span class="color-green" id="targetTp2">$88,200.00 (+4.4%)</span>
+            </div>
+            <div class="target-item">
+              <span id="txtSlLabel">🛑 Stop Loss</span>
+              <span class="color-red" id="targetSl">$83,100.00 (-1.6%)</span>
+            </div>
+            <div class="target-item">
+              <span id="txtRrLabel">⚖️ Risk / Reward</span>
+              <span style="color: #fff;" id="targetRr">1 : 2.0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Trades Table -->
+      <div class="glass-card">
+        <div class="card-header">
+          <div class="card-title" id="txtTableTitle">⚡ Active Positions & Execution Ledger</div>
+          <button class="primary-btn" id="btnOpenSimModal" onclick="openTradeModal()">+ Simulate Quick Trade</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th id="thId">ID</th>
+                <th id="thPair">Pair</th>
+                <th id="thSide">Side</th>
+                <th id="thEntry">Entry Price</th>
+                <th id="thCurrent">Current</th>
+                <th id="thSize">Size (USDT)</th>
+                <th id="thPnl">PnL ($ / %)</th>
+                <th id="thAction">Action</th>
+              </tr>
+            </thead>
+            <tbody id="positionsTbody">
+              <tr>
+                <td>#101</td>
+                <td><b>BTC/USDT</b></td>
+                <td><span style="color: var(--green); font-weight: 700;">BUY</span></td>
+                <td>$84,120.00</td>
+                <td id="tableBtcCurrent">$84,520.00</td>
+                <td>$250.00</td>
+                <td class="color-green" id="tableBtcPnl">+$1.19 (+0.48%)</td>
+                <td><button class="action-btn-sm" onclick="closeSimTrade(this, 1.19)" id="btnCloseTrade101">Close</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Quick Trade Modal -->
+  <div class="modal-overlay" id="tradeModal" onclick="if(event.target===this) closeTradeModal()">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title" id="txtModalTitle">⚡ Quick Trade Execution</div>
+        <button class="modal-close" onclick="closeTradeModal()">&times;</button>
+      </div>
+
+      <div class="modal-form-group">
+        <label class="modal-label" id="txtModalPairLabel">Trading Pair</label>
+        <select class="modal-select" id="modalPairSelect" onchange="updateModalTargets()">
+          <option value="BTC/USDT">BTC/USDT ($84,520.00)</option>
+          <option value="ETH/USDT">ETH/USDT ($2,710.50)</option>
+          <option value="SOL/USDT">SOL/USDT ($121.10)</option>
+          <option value="BNB/USDT">BNB/USDT ($580.00)</option>
+        </select>
+      </div>
+
+      <div class="modal-form-group">
+        <label class="modal-label" id="txtModalAmountLabel">Position Amount (USDT)</label>
+        <input type="number" class="modal-input" id="modalAmountInput" value="100" min="10" max="5000" step="10">
+        <div class="preset-chips">
+          <div class="preset-chip" onclick="setTradeSize(25)">$25</div>
+          <div class="preset-chip" onclick="setTradeSize(50)">$50</div>
+          <div class="preset-chip active" onclick="setTradeSize(100)">$100</div>
+          <div class="preset-chip" onclick="setTradeSize(250)">$250</div>
+          <div class="preset-chip" onclick="setTradeSize(500)">$500</div>
+        </div>
+      </div>
+
+      <div class="modal-form-group">
+        <label class="modal-label" id="txtModalLeverageLabel">Leverage: <span id="leverageVal">1x (Spot)</span></label>
+        <input type="range" class="modal-input" id="modalLeverageSlider" min="1" max="20" value="1" oninput="document.getElementById('leverageVal').innerText = this.value + 'x'">
+      </div>
+
+      <div class="modal-buttons">
+        <button class="btn-buy" id="btnModalBuy" onclick="executeModalTrade('BUY')">🟢 Buy / Long</button>
+        <button class="btn-sell" id="btnModalSell" onclick="executeModalTrade('SELL')">🔴 Sell / Short</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let currentLang = 'en'; // 'en' or 'pl'
+    let soundEnabled = true;
+    let autoTradeActive = true;
+    let paperBalance = 10000.0;
+    let btcPriceCurrent = 84520.0;
+    let activeSymbol = 'BTC/USDT';
+
+    // Simple Web Audio Synthesizer (Zero External Dependencies)
+    let audioCtx = null;
+    function playTone(freq, type, duration) {
+      if (!soundEnabled) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type || 'sine';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function soundSuccess() {
+      playTone(587.33, 'triangle', 0.12);
+      setTimeout(() => playTone(880, 'triangle', 0.2), 100);
+    }
+    function soundClick() {
+      playTone(440, 'sine', 0.05);
+    }
+
+    function toggleAudio() {
+      soundEnabled = !soundEnabled;
+      const btn = document.getElementById('soundToggleBtn');
+      btn.innerText = soundEnabled ? '🔊' : '🔇';
+    }
+
+    // Bilingual Content Dictionary
+    const I18N = {
+      en: {
+        brandTitle: "AI Automated Trading Bot",
+        brandSub: "Multi-Exchange Algorithmic Trading & Signal Engine",
+        engineStatus: "LIVE ENGINE ONLINE",
+        statBalLabel: "Paper Balance",
+        statBalSub: "Available USDT",
+        statPnlLabel: "Total Realized PnL",
+        statPnlSub: "+3.12% Total Return",
+        statWinLabel: "AI Win Rate",
+        statWinSub: "7 Wins / 2 Losses",
+        statExpLabel: "Active Exposure",
+        statExpSub: "1 Open Position",
+        chartTitle: "📈 BTC/USDT Live Trend & Indicators",
+        aiHeader: "🧠 AI Signal Engine",
+        verdictLabel: "Verdict",
+        confLabel: "Confidence",
+        tp1Label: "🎯 Take Profit 1",
+        tp2Label: "🎯 Take Profit 2",
+        slLabel: "🛑 Stop Loss",
+        rrLabel: "⚖️ Risk / Reward",
+        tableTitle: "⚡ Active Positions & Execution Ledger",
+        btnSimTrade: "+ Simulate Quick Trade",
+        thId: "ID",
+        thPair: "Pair",
+        thSide: "Side",
+        thEntry: "Entry Price",
+        thCurrent: "Current",
+        thSize: "Size (USDT)",
+        thPnl: "PnL ($ / %)",
+        thAction: "Action",
+        modalTitle: "⚡ Quick Trade Execution",
+        modalPairLabel: "Trading Pair",
+        modalAmountLabel: "Position Amount (USDT)",
+        modalLeverageLabel: "Leverage:",
+        btnModalBuy: "🟢 Buy / Long",
+        btnModalSell: "🔴 Sell / Short",
+        inputPlaceholder: "Send /signal, /portfolio, or tap buttons...",
+        welcomePrompt: "💡 <i>What would you like to do?</i><br>Tap buttons below to generate AI signals or manage your portfolio:",
+        btnSignals: "📊 AI Signals",
+        btnPortfolio: "💼 Portfolio",
+        btnPositions: "📈 Active Trades",
+        btnQuickTrade: "⚡ Quick Trade",
+        btnSettings: "⚙️ Settings",
+        btnAutoOn: "🤖 Auto-Trade: 🟢 ON",
+        btnAutoOff: "🤖 Auto-Trade: 🔴 OFF",
+        btnLangTg: "🌐 Język: 🇵🇱 PL",
+        closeBtn: "Close"
+      },
+      pl: {
+        brandTitle: "Bot Handlowy AI (Algorytmiczny)",
+        brandSub: "Wielo-giełdowy silnik ilościowy i sygnały AI",
+        engineStatus: "SILNIK NA ŻYWO AKTYWNY",
+        statBalLabel: "Saldo Demonstracyjne",
+        statBalSub: "Dostępne USDT",
+        statPnlLabel: "Zrealizowany Zysk (PnL)",
+        statPnlSub: "+3.12% Całkowity zwrot",
+        statWinLabel: "Skuteczność AI (Win Rate)",
+        statWinSub: "7 Wygranych / 2 Przegrane",
+        statExpLabel: "Aktywna Ekspozycja",
+        statExpSub: "1 Otwarta Pozycja",
+        chartTitle: "📈 Wykres BTC/USDT & Wskaźniki",
+        aiHeader: "🧠 Silnik Sygnałów AI",
+        verdictLabel: "Werdykt",
+        confLabel: "Wiarygodność",
+        tp1Label: "🎯 Take Profit 1",
+        tp2Label: "🎯 Take Profit 2",
+        slLabel: "🛑 Stop Loss",
+        rrLabel: "⚖️ Stosunek Zysku/Ryzyka",
+        tableTitle: "⚡ Aktywne Pozycje & Dziennik Transakcji",
+        btnSimTrade: "+ Symuluj Szybkie Zlecenie",
+        thId: "ID",
+        thPair: "Para",
+        thSide: "Kierunek",
+        thEntry: "Cena Wejścia",
+        thCurrent: "Aktualna",
+        thSize: "Wielkość (USDT)",
+        thPnl: "PnL ($ / %)",
+        thAction: "Akcja",
+        modalTitle: "⚡ Szybkie Zlecenie Handlowe",
+        modalPairLabel: "Para Kryptowalutowa",
+        modalAmountLabel: "Wielkość Pozycji (USDT)",
+        modalLeverageLabel: "Dźwignia:",
+        btnModalBuy: "🟢 Kup / Long",
+        btnModalSell: "🔴 Sprzedaj / Short",
+        inputPlaceholder: "Wpisz /signal, /portfolio lub kliknij przyciski...",
+        welcomePrompt: "💡 <i>Co chciałbyś zrobić?</i><br>Dotknij przycisków poniżej, aby analizować rynek lub zarządzać portfelem:",
+        btnSignals: "📊 Sygnały AI",
+        btnPortfolio: "💼 Portfel",
+        btnPositions: "📈 Aktywne pozycje",
+        btnQuickTrade: "⚡ Szybki handel",
+        btnSettings: "⚙️ Ustawienia",
+        btnAutoOn: "🤖 Auto-handel: 🟢 WŁ.",
+        btnAutoOff: "🤖 Auto-handel: 🔴 WYŁ.",
+        btnLangTg: "🌐 Language: 🇬🇧 EN",
+        closeBtn: "Zamknij"
+      }
+    };
+
+    function applyTranslations() {
+      const dict = I18N[currentLang];
+      document.getElementById('txtBrandTitle').innerText = dict.brandTitle;
+      document.getElementById('txtBrandSub').innerText = dict.brandSub;
+      document.getElementById('txtEngineStatus').innerHTML = `<div class="pulse-dot"></div> ${dict.engineStatus}`;
+      document.getElementById('langLabel').innerText = currentLang === 'en' ? '🇬🇧 EN' : '🇵🇱 PL';
+
+      document.getElementById('txtStatBalLabel').innerText = dict.statBalLabel;
+      document.getElementById('txtStatBalSub').innerText = dict.statBalSub;
+      document.getElementById('txtStatPnlLabel').innerText = dict.statPnlLabel;
+      document.getElementById('txtStatPnlSub').innerText = dict.statPnlSub;
+      document.getElementById('txtStatWinLabel').innerText = dict.statWinLabel;
+      document.getElementById('txtStatWinSub').innerText = dict.statWinSub;
+      document.getElementById('txtStatExpLabel').innerText = dict.statExpLabel;
+      document.getElementById('txtStatExpSub').innerText = dict.statExpSub;
+
+      document.getElementById('txtChartTitle').innerText = dict.chartTitle;
+      document.getElementById('txtAiHeader').innerText = dict.aiHeader;
+      document.getElementById('txtVerdictLabel').innerText = dict.verdictLabel;
+      document.getElementById('txtConfLabel').innerText = dict.confLabel;
+      document.getElementById('txtTp1Label').innerText = dict.tp1Label;
+      document.getElementById('txtTp2Label').innerText = dict.tp2Label;
+      document.getElementById('txtSlLabel').innerText = dict.slLabel;
+      document.getElementById('txtRrLabel').innerText = dict.rrLabel;
+
+      document.getElementById('txtTableTitle').innerText = dict.tableTitle;
+      document.getElementById('btnOpenSimModal').innerText = dict.btnSimTrade;
+
+      document.getElementById('thId').innerText = dict.thId;
+      document.getElementById('thPair').innerText = dict.thPair;
+      document.getElementById('thSide').innerText = dict.thSide;
+      document.getElementById('thEntry').innerText = dict.thEntry;
+      document.getElementById('thCurrent').innerText = dict.thCurrent;
+      document.getElementById('thSize').innerText = dict.thSize;
+      document.getElementById('thPnl').innerText = dict.thPnl;
+      document.getElementById('thAction').innerText = dict.thAction;
+
+      document.getElementById('txtModalTitle').innerText = dict.modalTitle;
+      document.getElementById('txtModalPairLabel').innerText = dict.modalPairLabel;
+      document.getElementById('txtModalAmountLabel').innerText = dict.modalAmountLabel;
+      document.getElementById('btnModalBuy').innerText = dict.btnModalBuy;
+      document.getElementById('btnModalSell').innerText = dict.btnModalSell;
+
+      document.getElementById('tgInput').placeholder = dict.inputPlaceholder;
+
+      renderTgWelcomeMessage();
+    }
+
+    function toggleLanguage() {
+      soundClick();
+      currentLang = currentLang === 'en' ? 'pl' : 'en';
+      applyTranslations();
+    }
+
+    function renderTgWelcomeMessage() {
+      const isPl = currentLang === 'pl';
+      const welcome = document.getElementById('welcomeMsg');
+      if (welcome) {
+        const autoText = autoTradeActive ? (isPl ? '🟢 AKTYWNY' : '🟢 ACTIVE') : (isPl ? '🔴 WSTRZYMANY' : '🔴 PAUSED');
+        const modeText = isPl ? 'HANDEL DEMO' : 'PAPER TRADING';
+        const prompt = isPl ? I18N.pl.welcomePrompt : I18N.en.welcomePrompt;
+
+        welcome.innerHTML = `
+          🤖 <b>${isPl ? 'BOT HANDLOWY AI' : 'AI AUTOMATED TRADING BOT'}</b><br>
+          ━━━━━━━━━━━━━━━━━━━━━━<br>
+          👋 ${isPl ? 'Witaj,' : 'Welcome,'} <b>Trader</b>!<br><br>
+          • <b>${isPl ? 'Tryb handlu:' : 'Trading Mode:'}</b> <code>${modeText}</code><br>
+          • <b>${isPl ? 'Saldo:' : 'Balance:'}</b> <code>$${paperBalance.toFixed(2)} USDT</code><br>
+          • <b>${isPl ? 'Auto-wykonywanie:' : 'Auto-Execution:'}</b> <code>${autoText}</code><br>
+          • <b>${isPl ? 'Profil ryzyka:' : 'Risk Profile:'}</b> <code>2.0% ${isPl ? 'na transakcję' : 'per trade'}</code><br>
+          • <b>${isPl ? 'Giełda:' : 'Exchange:'}</b> <code>BINANCE</code><br>
+          • <b>${isPl ? 'Język:' : 'Language:'}</b> <code>${isPl ? '🇵🇱 Polski' : '🇬🇧 English'}</code><br><br>
+          ${prompt}
+        `;
+      }
+    }
+
+    // Canvas Chart Rendering
+    const canvas = document.getElementById('priceCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+      drawChart();
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    let pricePoints = [
+      83800, 83950, 84100, 84020, 84250, 84180, 84350, 84300, 84480, 84420, 84500, 84520
+    ];
+
+    function drawChart() {
+      if (!canvas.width) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const w = canvas.width;
+      const h = canvas.height;
+      const padding = 24;
+
+      const minP = Math.min(...pricePoints) - 100;
+      const maxP = Math.max(...pricePoints) + 100;
+
+      // Draw Grid Lines
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.lineWidth = 1;
+      for (let i = 1; i <= 4; i++) {
+        const y = padding + (h - 2 * padding) * (i / 4);
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(w - padding, y);
+        ctx.stroke();
+      }
+
+      // Draw Price Line
+      ctx.beginPath();
+      pricePoints.forEach((p, i) => {
+        const x = padding + (w - 2 * padding) * (i / (pricePoints.length - 1));
+        const y = h - padding - ((p - minP) / (maxP - minP)) * (h - 2 * padding);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+
+      // Neon Gradient Stroke
+      ctx.strokeStyle = '#00f2fe';
+      ctx.lineWidth = 3;
+      ctx.shadowColor = 'rgba(0, 242, 254, 0.4)';
+      ctx.shadowBlur = 10;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Area gradient
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, 'rgba(0, 242, 254, 0.22)');
+      grad.addColorStop(1, 'rgba(0, 242, 254, 0.0)');
+      ctx.lineTo(w - padding, h - padding);
+      ctx.lineTo(padding, h - padding);
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Current Price Point
+      const lastX = w - padding;
+      const lastY = h - padding - ((pricePoints[pricePoints.length - 1] - minP) / (maxP - minP)) * (h - 2 * padding);
+      ctx.beginPath();
+      ctx.arc(lastX, lastY, 5, 0, 2 * Math.PI);
+      ctx.fillStyle = '#00e676';
+      ctx.fill();
+    }
+
+    setTimeout(resizeCanvas, 60);
+
+    function changeTf(btn, tf) {
+      soundClick();
+      document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      // Generate realistic price points for timeframe
+      const base = btcPriceCurrent;
+      pricePoints = Array.from({length: 12}, (_, i) => base - (11 - i) * (Math.random() * 30 + 10) + (Math.random() - 0.45) * 80);
+      pricePoints[11] = base;
+      drawChart();
+    }
+
+    // Live Binance API Tick
+    async function fetchLiveBinance() {
+      try {
+        const res = await fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT');
+        if (res.ok) {
+          const data = await res.json();
+          const p = parseFloat(data.lastPrice);
+          const chg = parseFloat(data.priceChangePercent);
+          btcPriceCurrent = p;
+          document.getElementById('btcPrice').innerText = `$${p.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+          const chgElem = document.getElementById('btcChange');
+          chgElem.innerText = `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%`;
+          chgElem.className = chg >= 0 ? 'color-green' : 'color-red';
+
+          const tableCurr = document.getElementById('tableBtcCurrent');
+          if (tableCurr) tableCurr.innerText = `$${p.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+          const pnl = ((p - 84120.0) / 84120.0 * 250);
+          const pnlElem = document.getElementById('tableBtcPnl');
+          if (pnlElem) {
+            pnlElem.innerText = `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${(pnl/250*100).toFixed(2)}%)`;
+            pnlElem.className = pnl >= 0 ? 'color-green' : 'color-red';
+          }
+
+          pricePoints.shift();
+          pricePoints.push(p);
+          drawChart();
+        }
+      } catch (e) {
+        // Fallback gentle simulation
+        btcPriceCurrent += (Math.random() - 0.48) * 20;
+        document.getElementById('btcPrice').innerText = `$${btcPriceCurrent.toFixed(2)}`;
+      }
+    }
+    setInterval(fetchLiveBinance, 4000);
+
+    // Telegram Bot Simulation Interactions
+    function getTimeStr() {
+      const d = new Date();
+      return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    }
+
+    function appendUserBubble(text) {
+      const history = document.getElementById('tgChat');
+      const div = document.createElement('div');
+      div.className = 'tg-msg user';
+      div.innerHTML = `<span>${text}</span><span class="tg-time-user">${getTimeStr()} <span class="read-receipt">✓✓</span></span>`;
+      history.appendChild(div);
+      history.scrollTop = history.scrollHeight;
+    }
+
+    function appendBotBubble(html, extraClass = '') {
+      const history = document.getElementById('tgChat');
+      const div = document.createElement('div');
+      div.className = `tg-msg bot ${extraClass}`;
+      div.innerHTML = `<div class="tg-msg-text">${html}</div><span class="tg-time">${getTimeStr()}</span>`;
+      history.appendChild(div);
+      history.scrollTop = history.scrollHeight;
+    }
+
+    function verifyAndActivate() {
+      soundSuccess();
+      const btn = document.getElementById('btnVerifyActivate');
+      if (btn) {
+        btn.classList.add('verify-badge-active');
+        btn.innerHTML = '<span>✅</span> <b>Bot Verified & Activated</b>';
+        btn.disabled = true;
+      }
+      const badge = document.getElementById('tgHeaderStatusBadge');
+      if (badge) badge.style.background = 'var(--green)';
+
+      setTimeout(() => {
+        appendBotBubble("Welcome back! Choose an option:");
+      }, 300);
+    }
+
+    function handleReplyButton(btnText) {
+      soundClick();
+      appendUserBubble(btnText);
+
+      setTimeout(() => {
+        if (btnText.includes('Deposit')) {
+          appendBotBubble(
+            `🛒 <b>Deposit cart</b><br><br>` +
+            `Enter the USD amount you want to deposit.<br>` +
+            `Minimum: $ 100.00 usd<br><br>` +
+            `Example: <code>\`150\`</code> or <code>\`$150\`</code>` +
+            `<div class="tg-quick-chips">` +
+            `  <button class="tg-chip-btn" onclick="selectDepositAmount(100)">$100</button>` +
+            `  <button class="tg-chip-btn" onclick="selectDepositAmount(150)">$150</button>` +
+            `  <button class="tg-chip-btn" onclick="selectDepositAmount(250)">$250</button>` +
+            `  <button class="tg-chip-btn" onclick="selectDepositAmount(500)">$500</button>` +
+            `  <button class="tg-chip-btn" onclick="selectDepositAmount(1000)">$1,000</button>` +
+            `</div>`
+          );
+        } else if (btnText.includes('User Reviews')) {
+          appendBotBubble(
+            `👉 Check out our latest user reviews and verified profit results on our official channel!<br><br>` +
+            `<div style="margin-top: 10px;">` +
+            `  <button class="tg-chip-btn" onclick="window.open('https://t.me/automatedtrading2', '_blank')">✅ View Verified Reviews</button>` +
+            `</div>`
+          );
+        } else if (btnText.includes('Profit Calculator')) {
+          appendBotBubble(
+            `📊 <b>AI AUTOMATED PROFIT CALCULATOR</b><br>` +
+            `━━━━━━━━━━━━━━━━━━━━━━<br>` +
+            `Our quantitative AI engine generates an average return of <b>1.5% - 3.2% daily</b> using multi-factor algorithmic execution and strict risk control.<br><br>` +
+            `💰 <b>Estimated Returns by Investment Tier:</b><br><br>` +
+            `🥉 <b>Starter Tier ($100 - $499)</b><br>` +
+            `• Average: <b>1.8% daily</b><br>` +
+            `• 7 Days: <code>~$113.50</code> (+13.5%)<br>` +
+            `• 30 Days: <code>~$170.00</code> (+70.0%)<br><br>` +
+            `🥈 <b>Advanced Tier ($500 - $1,999)</b><br>` +
+            `• Average: <b>2.2% daily</b><br>` +
+            `• 7 Days: <code>~$582.00</code> (+16.4%)<br>` +
+            `• 30 Days: <code>~$960.00</code> (+92.0%)<br><br>` +
+            `🥇 <b>Pro Trader Tier ($2,000 - $4,999)</b><br>` +
+            `• Average: <b>2.7% daily</b><br>` +
+            `• 7 Days: <code>~$2,410.00</code> (+20.5%)<br>` +
+            `• 30 Days: <code>~$4,420.00</code> (+121.0%)<br><br>` +
+            `💎 <b>VIP Whale Tier ($5,000+)</b><br>` +
+            `• Average: <b>3.2% daily</b><br>` +
+            `• 7 Days: <code>~$6,240.00</code> (+24.8%)<br>` +
+            `• 30 Days: <code>~$12,850.00</code> (+157.0%)<br>` +
+            `━━━━━━━━━━━━━━━━━━━━━━<br>` +
+            `💡 <i>All trading utilizes automated Stop-Loss (Max 2% capital risk per trade).</i>` +
+            `<div class="tg-quick-chips">` +
+            `  <button class="tg-chip-btn" onclick="selectDepositAmount(100)">Deposit $100</button>` +
+            `  <button class="tg-chip-btn" onclick="selectDepositAmount(500)">Deposit $500</button>` +
+            `  <button class="tg-chip-btn" onclick="selectDepositAmount(1000)">Deposit $1,000</button>` +
+            `</div>`
+          );
+        } else if (btnText.includes('How It Works')) {
+          appendBotBubble(
+            `📖 <b>HOW THE AI AUTOMATED BOT WORKS</b><br>` +
+            `━━━━━━━━━━━━━━━━━━━━━━<br>` +
+            `1️⃣ <b>Deposit & Activate</b> 💰<br>` +
+            `Choose your preferred crypto network (USDT TRC20, BEP20, BTC, SOL, TON). Minimum deposit is $100.00 USD.<br><br>` +
+            `2️⃣ <b>AI Market Scanning</b> 🧠<br>` +
+            `The neural engine analyzes 15+ indicators (RSI-14, MACD Crossovers, Bollinger Squeezes, EMA trend alignments) across Binance, Bybit, OKX.<br><br>` +
+            `3️⃣ <b>Autonomous Order Execution</b> ⚡<br>` +
+            `When trade confidence exceeds 72%, the bot enters high-probability positions with calibrated 1:2 Risk/Reward and Stop-Loss.<br><br>` +
+            `4️⃣ <b>Daily Compounding & Instant Withdrawals</b> 🕊️<br>` +
+            `Earnings compound continuously in your portfolio. You can withdraw anytime with 0% platform fee.<br>` +
+            `━━━━━━━━━━━━━━━━━━━━━━`
+          );
+        } else if (btnText.includes('Live Support')) {
+          appendBotBubble(
+            `💬 <b>24/7 LIVE SUPPORT & TRADING DESK</b><br>` +
+            `━━━━━━━━━━━━━━━━━━━━━━<br>` +
+            `Our dedicated technical support team and trading desk are standing by 24/7 to assist you.<br><br>` +
+            `• <b>Live Support Desk:</b> @KELVIN_ADMIN_SUPPORT<br>` +
+            `• <b>VIP Trader Desk:</b> @AITradingDesk<br>` +
+            `• <b>Verification Team:</b> @BotVerificationDesk<br>` +
+            `• <b>Average Response Time:</b> <code>&lt; 5 minutes</code><br><br>` +
+            `<div class="tg-quick-chips">` +
+            `  <button class="tg-chip-btn" style="background: var(--accent-blue); color: #fff;" onclick="window.open('https://t.me/KELVIN_ADMIN_SUPPORT', '_blank')">💬 Open Support Chat</button>` +
+            `</div>`
+          );
+        } else if (btnText.includes('Live Charts')) {
+          appendBotBubble(
+            `📊 <b>REAL-TIME CRYPTO MARKET CHARTS & SIGNALS</b><br>` +
+            `━━━━━━━━━━━━━━━━━━━━━━<br>` +
+            `🟢 <b>BTC/USDT:</b> <code>$${btcPriceCurrent.toFixed(2)}</code> (+1.45%)<br>` +
+            `🟢 <b>ETH/USDT:</b> <code>$2,710.50</code> (+0.82%)<br>` +
+            `🔴 <b>SOL/USDT:</b> <code>$121.10</code> (-0.35%)<br>` +
+            `🟢 <b>BNB/USDT:</b> <code>$588.40</code> (+1.10%)<br>` +
+            `━━━━━━━━━━━━━━━━━━━━━━<br>` +
+            `💡 <i>AI Engine is continuously scanning for high-confidence order setups.</i>` +
+            `<div class="tg-quick-chips">` +
+            `  <button class="tg-chip-btn" onclick="analyzePair('BTC/USDT')">Analyze BTC</button>` +
+            `  <button class="tg-chip-btn" onclick="analyzePair('ETH/USDT')">Analyze ETH</button>` +
+            `  <button class="tg-chip-btn" onclick="analyzePair('SOL/USDT')">Analyze SOL</button>` +
+            `</div>`
+          );
+        } else if (btnText.includes('My Account')) {
+          appendBotBubble(
+            `👤 <b>MY ACCOUNT & BALANCE</b><br>` +
+            `━━━━━━━━━━━━━━━━━━━━━━<br>` +
+            `• <b>User:</b> Trader (<code>ID: 99887766</code>)<br>` +
+            `• <b>Status:</b> 🟢 <code>Verified & Active</code><br>` +
+            `• <b>Trading Mode:</b> <code>PAPER TRADING</code><br>` +
+            `• <b>Total Balance:</b> <code>$${paperBalance.toFixed(2)} USDT</code><br>` +
+            `• <b>Total Realized Profit:</b> <code class="color-green">+$312.40 USD</code><br>` +
+            `• <b>AI Win Rate:</b> <code>77.8% (7W / 2L)</code><br>` +
+            `• <b>Active Open Trades:</b> <code>1 open position</code><br>` +
+            `• <b>Automated Trading:</b> <code>${autoTradeActive ? '🟢 ACTIVE' : '🔴 PAUSED'}</code><br>` +
+            `━━━━━━━━━━━━━━━━━━━━━━` +
+            `<div class="tg-quick-chips">` +
+            `  <button class="tg-chip-btn" onclick="handleReplyButton('💰 Deposit')">💰 Deposit</button>` +
+            `  <button class="tg-chip-btn" onclick="handleReplyButton('🕊️ Withdraw Funds')">🕊️ Withdraw</button>` +
+            `</div>`
+          );
+        } else if (btnText.includes('About Us')) {
+          appendBotBubble(
+            `🏛️ <b>ABOUT AI AUTOMATED TRADING</b><br>` +
+            `━━━━━━━━━━━━━━━━━━━━━━<br>` +
+            `Founded by institutional algorithmic quantitative traders and AI researchers, AI Automated Trading brings Wall Street level algorithmic execution to digital asset investors.<br><br>` +
+            `• <b>Strategy:</b> Multi-factor quantitative momentum & mean-reversion<br>` +
+            `• <b>Exchanges:</b> Direct API low-latency connectivity to Binance, Bybit, OKX<br>` +
+            `• <b>Security:</b> Cold storage address management, automated ATR risk containment<br>` +
+            `• <b>Performance:</b> Over 24 months of verified profitability`
+          );
+        } else if (btnText.includes('FAQ')) {
+          appendBotBubble(
+            `ℹ️ <b>FREQUENTLY ASKED QUESTIONS (FAQ)</b><br>` +
+            `━━━━━━━━━━━━━━━━━━━━━━<br>` +
+            `<b>Q: What is the minimum deposit?</b><br>` +
+            `A: The minimum deposit is $100.00 USD in USDT, BTC, SOL, or TON.<br><br>` +
+            `<b>Q: How fast are withdrawals processed?</b><br>` +
+            `A: Typically 5 to 30 minutes with 0% platform fee.<br><br>` +
+            `<b>Q: How does the AI protect my balance?</b><br>` +
+            `A: Every trade has a mandatory Stop-Loss strictly capped at 2% risk of your account balance.<br><br>` +
+            `<b>Q: Can I withdraw my initial deposit?</b><br>` +
+            `A: Yes, both profits and initial deposit can be withdrawn at any time.`
+          );
+        } else if (btnText.includes('Withdraw')) {
+          appendBotBubble(
+            `🕊️ <b>WITHDRAW FUNDS</b><br>` +
+            `━━━━━━━━━━━━━━━━━━━━━━<br>` +
+            `• <b>Available Balance:</b> <code>$${paperBalance.toFixed(2)} USD</code><br>` +
+            `• <b>Minimum Withdrawal:</b> <code>$50.00 USD</code><br>` +
+            `• <b>Platform Fee:</b> <code>0% (Free)</code><br>` +
+            `• <b>Average Processing Time:</b> <code>5 - 30 minutes</code><br><br>` +
+            `Enter your withdrawal command in the input box:<br>` +
+            `<code>/withdraw &lt;AMOUNT&gt; &lt;NETWORK&gt; &lt;WALLET_ADDRESS&gt;</code><br><br>` +
+            `<i>Example: /withdraw 150 USDT_TRC20 TXYZ123456...</i>` +
+            `<div class="tg-quick-chips">` +
+            `  <button class="tg-chip-btn" style="background: var(--accent-cyan); color: #070a13; font-weight: 700;" onclick="simulateWithdrawalPrompt()">⚡ Instant Demo Withdrawal ($100)</button>` +
+            `</div>`
+          );
+        }
+      }, 200);
+    }
+
+    function selectDepositAmount(amt) {
+      soundClick();
+      appendUserBubble(`$${amt}`);
+      setTimeout(() => {
+        appendBotBubble(
+          `🛒 <b>Deposit Cart Created</b><br>` +
+          `━━━━━━━━━━━━━━━━━━━━━━<br>` +
+          `• <b>Target Amount:</b> <code>$${amt.toFixed(2)} USD</code><br>` +
+          `• <b>Minimum:</b> <code>$100.00 USD</code><br>` +
+          `• <b>Status:</b> ⏳ <code>Select Payment Network</code><br><br>` +
+          `Please choose your preferred deposit cryptocurrency network below:` +
+          `<div class="tg-crypto-grid">` +
+          `  <button class="tg-crypto-btn" onclick="selectCryptoNetwork('USDT (TRC20)', ${amt}, 'TVYanSUjhVLwEd9jLt1dWY2nZWFrwEjF88')">💵 USDT TRC20</button>` +
+          `  <button class="tg-crypto-btn" onclick="selectCryptoNetwork('USDT (BEP20)', ${amt}, '0x71C8A30B920b7A9a4E9689DemoAddressBsc')">🪙 USDT BEP20</button>` +
+          `  <button class="tg-crypto-btn" onclick="selectCryptoNetwork('Bitcoin (BTC)', ${amt}, '1QBTRUbrxySqYErsPkJdfXCL2rKWZqbvfm')">₿ Bitcoin (BTC)</button>` +
+          `  <button class="tg-crypto-btn" onclick="selectCryptoNetwork('Solana (SOL)', ${amt}, '7xyzDemoSolanaAddressOfficialChangeInAdmin')">⚡ Solana (SOL)</button>` +
+          `  <button class="tg-crypto-btn" onclick="selectCryptoNetwork('TON Network', ${amt}, 'UQDemoTonWalletAddressOfficial1234567')">💎 TON</button>` +
+          `  <button class="tg-crypto-btn" onclick="selectCryptoNetwork('Ethereum (ERC20)', ${amt}, '0xDemoErc20AddressChangeInAdmin123456')">🔷 Ethereum</button>` +
+          `</div>`
+        );
+      }, 250);
+    }
+
+    function selectCryptoNetwork(network, amt, addr) {
+      soundClick();
+      appendUserBubble(`Selected: ${network}`);
+      setTimeout(() => {
+        appendBotBubble(
+          `🛒 <b>DEPOSIT PAYMENT INVOICE</b><br>` +
+          `━━━━━━━━━━━━━━━━━━━━━━<br>` +
+          `• <b>Target Amount:</b> <code>$${amt.toFixed(2)} USD</code><br>` +
+          `• <b>Crypto Network:</b> <code>${network}</code><br>` +
+          `• <b>Deposit Address:</b><br>` +
+          `<code style="background: rgba(0,0,0,0.5); padding: 5px 8px; border-radius: 6px; display: block; margin: 6px 0; word-break: break-all; color: var(--accent-cyan); font-family: monospace;">${addr}</code><br>` +
+          `━━━━━━━━━━━━━━━━━━━━━━<br>` +
+          `📋 <b>Step-by-Step Instructions:</b><br>` +
+          `1. Send exactly <code>$${amt.toFixed(2)}</code> in ${network} to this address.<br>` +
+          `2. Once sent, click <b>Submit TXID</b> below to paste your transaction hash.<br>` +
+          `3. Your balance will be credited upon 1 blockchain confirmation.` +
+          `<div class="tg-quick-chips" style="margin-top: 10px;">` +
+          `  <button class="tg-chip-btn" style="background: var(--accent-cyan); color: #070a13; font-weight: 700;" onclick="submitTxidPrompt('${network}', ${amt})">📤 Submit TXID / Hash</button>` +
+          `  <button class="tg-chip-btn" onclick="navigator.clipboard.writeText('${addr}'); alert('Address copied to clipboard!');">📋 Copy Address</button>` +
+          `</div>`
+        );
+      }, 250);
+    }
+
+    function submitTxidPrompt(network, amt) {
+      soundSuccess();
+      const fakeTxid = '0x' + Math.random().toString(16).substring(2, 10) + '...' + Math.random().toString(16).substring(2, 8);
+      appendBotBubble(
+        `✅ <b>TXID Submitted & Verified!</b><br>` +
+        `━━━━━━━━━━━━━━━━━━━━━━<br>` +
+        `• <b>Amount:</b> <code>$${amt.toFixed(2)} USD</code><br>` +
+        `• <b>Network:</b> <code>${network}</code><br>` +
+        `• <b>TXID:</b> <code>${fakeTxid}</code><br>` +
+        `• <b>Status:</b> 🟢 <b class="color-green">CREDITED TO BALANCE</b><br><br>` +
+        `🎉 Your deposit has been confirmed! The automated AI engine is scanning pairs for new entries.`
+      );
+      paperBalance += amt;
+      document.getElementById('dashBalance').innerText = `$${paperBalance.toFixed(2)}`;
+    }
+
+    function simulateWithdrawalPrompt() {
+      if (paperBalance < 100) {
+        alert("Insufficient balance.");
+        return;
+      }
+      soundSuccess();
+      paperBalance -= 100;
+      document.getElementById('dashBalance').innerText = `$${paperBalance.toFixed(2)}`;
+      appendBotBubble(
+        `🕊️ <b>WITHDRAWAL PROCESSED (#WDR-349)</b><br>` +
+        `━━━━━━━━━━━━━━━━━━━━━━<br>` +
+        `• <b>Amount:</b> <code>$100.00 USD</code><br>` +
+        `• <b>Network:</b> <code>USDT_TRC20</code><br>` +
+        `• <b>Destination:</b> <code>TXYZ...9876DEF</code><br>` +
+        `• <b>Status:</b> 🟢 <b class="color-green">SENT TO BLOCKCHAIN</b><br><br>` +
+        `Funds will arrive in your wallet in 5-15 minutes.`
+      );
+    }
+
+    function sendCustomMessage() {
+      const input = document.getElementById('tgInput');
+      const val = input.value.trim();
+      if (!val) return;
+      input.value = '';
+
+      const cleanVal = val.replace('$', '').replace(',', '').trim();
+      const isNum = !isNaN(parseFloat(cleanVal)) && isFinite(cleanVal);
+
+      if (isNum && parseFloat(cleanVal) >= 100) {
+        selectDepositAmount(parseFloat(cleanVal));
+        return;
+      } else if (isNum && parseFloat(cleanVal) < 100) {
+        appendUserBubble(val);
+        setTimeout(() => {
+          appendBotBubble("⚠️ <b>Minimum: $ 100.00 usd</b><br>Please enter an amount equal to or above $100.");
+        }, 200);
+        return;
+      }
+
+      appendUserBubble(val);
+      setTimeout(() => {
+        if (val.toLowerCase().includes('deposit')) {
+          handleReplyButton('💰 Deposit');
+        } else if (val.toLowerCase().includes('review')) {
+          handleReplyButton('✅ User Reviews');
+        } else if (val.toLowerCase().includes('calculator')) {
+          handleReplyButton('📊 Profit Calculator');
+        } else if (val.toLowerCase().includes('how')) {
+          handleReplyButton('📖 How It Works');
+        } else if (val.toLowerCase().includes('support')) {
+          handleReplyButton('💬 Live Support');
+        } else if (val.toLowerCase().includes('chart')) {
+          handleReplyButton('📊 Live Charts');
+        } else if (val.toLowerCase().includes('account') || val.toLowerCase().includes('balance')) {
+          handleReplyButton('👤 My Account & Balance');
+        } else if (val.toLowerCase().includes('about')) {
+          handleReplyButton('🏛️ About Us');
+        } else if (val.toLowerCase().includes('faq')) {
+          handleReplyButton('ℹ️ FAQ');
+        } else if (val.toLowerCase().includes('withdraw')) {
+          handleReplyButton('🕊️ Withdraw Funds');
+        } else {
+          appendBotBubble(`🤖 Recognized input: <code>${val}</code>.<br>Please select an option from the menu buttons below.`);
+        }
+      }, 250);
+    }
+
+    function closeSimTrade(btn, pnlVal) {
+      soundSuccess();
+      if (btn) {
+        const row = btn.closest('tr');
+        if (row) row.remove();
+      }
+      paperBalance += pnlVal;
+      document.getElementById('dashBalance').innerText = `$${paperBalance.toFixed(2)}`;
+      const isPl = currentLang === 'pl';
+      const msg = isPl
+        ? `✅ Pozycja zamknięta po cenie rynkowej. Zrealizowany PnL: <b class="color-green">+$${pnlVal.toFixed(2)}</b>`
+        : `✅ Position closed at market price. Realized PnL: <b class="color-green">+$${pnlVal.toFixed(2)}</b>`;
+      appendTgMessage(msg);
+    }
+
+    // Modal Operations
+    function openTradeModal() {
+      soundClick();
+      document.getElementById('tradeModal').classList.add('active');
+    }
+
+    function closeTradeModal() {
+      document.getElementById('tradeModal').classList.remove('active');
+    }
+
+    function setTradeSize(amt) {
+      soundClick();
+      document.getElementById('modalAmountInput').value = amt;
+      document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+
+    function executeModalTrade(side) {
+      const pair = document.getElementById('modalPairSelect').value;
+      const amt = parseFloat(document.getElementById('modalAmountInput').value) || 100;
+      closeTradeModal();
+      executeTradeFromTg(pair, side);
+    }
+
+    function switchPair(pair) {
+      soundClick();
+      activeSymbol = pair;
+      document.getElementById('txtChartTitle').innerText = `📈 ${pair} Live Trend & Indicators`;
+      analyzePair(pair);
+    }
+
+    function analyzePair(pair) {
+      soundClick();
+      activeSymbol = pair;
+      const prices = { 'BTC/USDT': btcPriceCurrent, 'ETH/USDT': 2710.50, 'SOL/USDT': 121.10, 'BNB/USDT': 588.40 };
+      const price = prices[pair] || btcPriceCurrent;
+      const signals = ['🚀 STRONG BUY', '📈 BUY', '⚖️ NEUTRAL', '📉 SELL', '🔻 STRONG SELL'];
+      const signal = signals[Math.floor(Math.random() * 2)]; // Bias toward BUY
+      const conf = (72 + Math.random() * 22).toFixed(1);
+      const tp1 = (price * 1.022).toFixed(2);
+      const tp2 = (price * 1.044).toFixed(2);
+      const sl = (price * 0.984).toFixed(2);
+
+      document.getElementById('txtChartTitle').innerText = `📈 ${pair} Live Trend & Indicators`;
+      document.getElementById('signalVerdict').innerText = signal;
+      document.getElementById('signalVerdict').className = signal.includes('BUY') ? 'verdict-tag color-green' : signal.includes('SELL') ? 'verdict-tag color-red' : 'verdict-tag';
+      document.getElementById('signalConf').innerText = conf + '%';
+      document.getElementById('confFill').style.width = conf + '%';
+      document.getElementById('targetTp1').innerText = `$${parseFloat(tp1).toLocaleString()} (+2.2%)`;
+      document.getElementById('targetTp2').innerText = `$${parseFloat(tp2).toLocaleString()} (+4.4%)`;
+      document.getElementById('targetSl').innerText = `$${parseFloat(sl).toLocaleString()} (-1.6%)`;
+
+      appendBotBubble(
+        `🧠 <b>AI SIGNAL ANALYSIS — ${pair}</b><br>` +
+        `━━━━━━━━━━━━━━━━━━━━━━<br>` +
+        `• <b>Signal:</b> <code>${signal}</code><br>` +
+        `• <b>Confidence:</b> <code>${conf}%</code><br>` +
+        `• <b>Current Price:</b> <code>$${price.toLocaleString()}</code><br>` +
+        `• <b>Take Profit 1:</b> <code>$${parseFloat(tp1).toLocaleString()} (+2.2%)</code><br>` +
+        `• <b>Take Profit 2:</b> <code>$${parseFloat(tp2).toLocaleString()} (+4.4%)</code><br>` +
+        `• <b>Stop Loss:</b> <code>$${parseFloat(sl).toLocaleString()} (-1.6%)</code><br>` +
+        `• <b>Risk/Reward:</b> <code>1 : 2.0</code><br>` +
+        `━━━━━━━━━━━━━━━━━━━━━━<br>` +
+        `<i>Executing autonomous trade entry if confidence ≥ 72%...</i>` +
+        `<div class="tg-quick-chips">` +
+        `  <button class="tg-chip-btn" style="background: var(--green); color: #070a13; font-weight: 700;" onclick="executeTradeFromTg('${pair}', 'BUY')">⚡ Execute BUY</button>` +
+        `  <button class="tg-chip-btn" onclick="handleReplyButton('💰 Deposit')">💰 Deposit</button>` +
+        `</div>`
+      );
+    }
+
+    function appendTgMessage(html) {
+      appendBotBubble(html);
+    }
+
+    function executeTradeFromTg(pair, side) {
+      soundSuccess();
+      const prices = { 'BTC/USDT': btcPriceCurrent, 'ETH/USDT': 2710.50, 'SOL/USDT': 121.10, 'BNB/USDT': 588.40 };
+      const entryPrice = prices[pair] || btcPriceCurrent;
+      const amt = parseFloat(document.getElementById('modalAmountInput')?.value) || 100;
+      const tradeId = '#' + (Math.floor(Math.random() * 900) + 100);
+      paperBalance -= amt;
+      document.getElementById('dashBalance').innerText = `$${paperBalance.toFixed(2)}`;
+
+      const tbody = document.getElementById('positionsTbody');
+      if (tbody) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${tradeId}</td>
+          <td><b>${pair}</b></td>
+          <td><span style="color: ${side === 'BUY' ? 'var(--green)' : 'var(--red)'}; font-weight: 700;">${side}</span></td>
+          <td>$${entryPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+          <td>$${entryPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+          <td>$${amt.toFixed(2)}</td>
+          <td class="color-green">+$0.00 (0.00%)</td>
+          <td><button class="action-btn-sm" onclick="closeSimTrade(this, ${(amt * 0.02).toFixed(2)})">Close</button></td>
+        `;
+        tbody.appendChild(tr);
+      }
+      appendBotBubble(
+        `⚡ <b>ORDER EXECUTED — ${side} ${pair}</b><br>` +
+        `━━━━━━━━━━━━━━━━━━━━━━<br>` +
+        `• <b>Trade ID:</b> <code>${tradeId}</code><br>` +
+        `• <b>Side:</b> <code>${side}</code><br>` +
+        `• <b>Entry Price:</b> <code>$${entryPrice.toLocaleString()}</code><br>` +
+        `• <b>Size:</b> <code>$${amt.toFixed(2)} USDT</code><br>` +
+        `• <b>Status:</b> 🟢 <b class="color-green">POSITION OPEN</b>`
+      );
+    }
+
+    function updateModalTargets() {
+      const pair = document.getElementById('modalPairSelect').value;
+      document.getElementById('txtChartTitle').innerText = `📈 ${pair} Live Trend & Indicators`;
+    }
+
+    // Initialize
+    applyTranslations();
+  </script>
+</body>
+</html>

@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Traffic Monitor — AI Trading Bot</title>
+  <meta name="description" content="Real-time client traffic monitor for the AI Automated Trading Telegram Bot">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:         #050810;
+      --bg2:        #080d1a;
+      --card:       rgba(12, 19, 35, 0.82);
+      --border:     rgba(255,255,255,0.07);
+      --border-hi:  rgba(0,242,254,0.18);
+      --cyan:       #00f2fe;
+      --cyan-dim:   rgba(0,242,254,0.12);
+      --blue:       #38bdf8;
+      --purple:     #a78bfa;
+      --green:      #10f08c;
+      --green-dim:  rgba(16,240,140,0.12);
+      --yellow:     #fbbf24;
+      --yellow-dim: rgba(251,191,36,0.12);
+      --red:        #f43f5e;
+      --red-dim:    rgba(244,63,94,0.12);
+      --orange:     #fb923c;
+      --orange-dim: rgba(251,146,60,0.12);
+      --text:       #e2e8f0;
+      --muted:      #64748b;
+      --muted2:     #94a3b8;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image:
+        radial-gradient(ellipse 80% 40% at 50% -10%, rgba(0,100,200,0.12) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 30% at 90% 80%, rgba(100,0,200,0.08) 0%, transparent 60%);
+    }
+
+    /* ── Scrollbar ─────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg2); }
+    ::-webkit-scrollbar-thumb { background: rgba(0,242,254,0.3); border-radius: 4px; }
+
+    /* ── Header ────────────────────────────────────────────── */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 28px;
+      background: rgba(5,8,16,0.90);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .brand {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .brand-icon {
+      width: 42px; height: 42px;
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 0 24px rgba(0,242,254,0.3);
+    }
+    .brand-name {
+      font-size: 1.15rem; font-weight: 700; letter-spacing: -0.02em;
+      background: linear-gradient(90deg, #fff 0%, #94a3b8 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .brand-sub { font-size: 0.72rem; color: var(--muted); margin-top: 1px; }
+
+    .header-right { display: flex; align-items: center; gap: 18px; }
+    .live-badge {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 13px;
+      background: var(--green-dim);
+      border: 1px solid rgba(16,240,140,0.25);
+      border-radius: 20px;
+      font-size: 0.78rem; font-weight: 600; color: var(--green);
+    }
+    .live-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--green);
+      animation: pulse 1.6s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.7); }
+    }
+    .conn-status {
+      font-size: 0.75rem; color: var(--muted);
+      display: flex; align-items: center; gap: 5px;
+    }
+    .conn-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--muted);
+      transition: background 0.3s;
+    }
+    .conn-dot.connected { background: var(--green); }
+    .server-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem; color: var(--muted2);
+    }
+
+    /* ── Layout ────────────────────────────────────────────── */
+    main {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 28px 24px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 24px;
+    }
+
+    /* ── Stats Row ─────────────────────────────────────────── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.25s, box-shadow 0.25s;
+    }
+    .stat-card:hover {
+      border-color: var(--border-hi);
+      box-shadow: 0 0 20px rgba(0,242,254,0.06);
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: var(--accent-line, linear-gradient(90deg, var(--cyan), var(--purple)));
+      opacity: 0.7;
+    }
+    .stat-icon { font-size: 1.6rem; margin-bottom: 10px; }
+    .stat-label { font-size: 0.72rem; color: var(--muted); font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; }
+    .stat-value {
+      font-size: 2rem; font-weight: 800; margin-top: 4px;
+      background: var(--val-color, linear-gradient(90deg, #fff, #cbd5e1));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .stat-delta { font-size: 0.73rem; color: var(--muted2); margin-top: 3px; }
+
+    /* ── Two-column body ───────────────────────────────────── */
+    .body-grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 20px;
+    }
+    @media (max-width: 1100px) {
+      .body-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Panel Card ────────────────────────────────────────── */
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .panel-title {
+      font-size: 0.9rem; font-weight: 700; letter-spacing: -0.01em;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .panel-badge {
+      font-size: 0.7rem; font-weight: 600;
+      padding: 3px 9px; border-radius: 20px;
+      background: var(--cyan-dim); color: var(--cyan);
+      border: 1px solid rgba(0,242,254,0.2);
+    }
+    .panel-actions { display: flex; gap: 8px; }
+    .panel-btn {
+      padding: 5px 14px; border-radius: 8px; border: 1px solid var(--border);
+      background: transparent; color: var(--muted2); font-size: 0.75rem;
+      cursor: pointer; transition: all 0.2s; font-family: inherit;
+    }
+    .panel-btn:hover { border-color: var(--border-hi); color: var(--cyan); }
+
+    /* ── Activity Feed ─────────────────────────────────────── */
+    #feed {
+      flex: 1;
+      overflow-y: auto;
+      max-height: calc(100vh - 280px);
+      min-height: 400px;
+    }
+    .feed-empty {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; height: 200px;
+      color: var(--muted); font-size: 0.88rem; gap: 10px;
+    }
+    .feed-empty .empty-icon { font-size: 2.5rem; opacity: 0.4; }
+
+    .feed-item {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 13px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.035);
+      transition: background 0.2s;
+      animation: slideIn 0.35s cubic-bezier(0.2, 0.8, 0.3, 1);
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-12px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .feed-item:hover { background: rgba(255,255,255,0.025); }
+    .feed-item.new-user  .event-dot { background: var(--green); box-shadow: 0 0 8px var(--green); }
+    .feed-item.returning .event-dot { background: var(--blue); box-shadow: 0 0 8px var(--blue); }
+    .feed-item.deposit   .event-dot { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); }
+    .feed-item.withdraw  .event-dot { background: var(--orange); box-shadow: 0 0 8px var(--orange); }
+    .feed-item.message   .event-dot { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+    .feed-item.command   .event-dot { background: var(--purple); box-shadow: 0 0 8px var(--purple); }
+    .feed-item.trade_open  .event-dot { background: var(--green); box-shadow: 0 0 8px var(--green); }
+    .feed-item.trade_close .event-dot { background: var(--red); box-shadow: 0 0 8px var(--red); }
+
+    .event-dot {
+      width: 9px; height: 9px; border-radius: 50%;
+      flex-shrink: 0; margin-top: 5px;
+      background: var(--muted);
+    }
+    .event-body { flex: 1; min-width: 0; }
+    .event-top {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .event-type-badge {
+      font-size: 0.67rem; font-weight: 700; padding: 2px 8px;
+      border-radius: 20px; letter-spacing: 0.04em; text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .event-user {
+      font-size: 0.85rem; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .event-username { color: var(--muted2); font-size: 0.8rem; }
+    .event-detail {
+      font-size: 0.8rem; color: var(--muted2); margin-top: 3px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .event-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem; color: var(--muted);
+      flex-shrink: 0; white-space: nowrap;
+    }
+
+    /* Badge colours */
+    .badge-new_user   { background: var(--green-dim);  color: var(--green); }
+    .badge-returning  { background: rgba(56,189,248,0.1); color: var(--blue); }
+    .badge-deposit    { background: var(--yellow-dim); color: var(--yellow); }
+    .badge-withdraw   { background: var(--orange-dim); color: var(--orange); }
+    .badge-message    { background: var(--cyan-dim);   color: var(--cyan); }
+    .badge-command    { background: rgba(167,139,250,0.1); color: var(--purple); }
+    .badge-trade_open  { background: var(--green-dim);  color: var(--green); }
+    .badge-trade_close { background: var(--red-dim);    color: var(--red); }
+
+    /* ── Right sidebar ─────────────────────────────────────── */
+    .sidebar { display: flex; flex-direction: column; gap: 20px; }
+
+    /* ── Client Table ──────────────────────────────────────── */
+    #client-list-body { overflow-y: auto; max-height: 340px; }
+    .client-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.035);
+      transition: background 0.2s;
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; } to { opacity: 1; }
+    }
+    .client-row:hover { background: rgba(255,255,255,0.025); }
+    .avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem; font-weight: 700; color: #fff;
+      flex-shrink: 0;
+    }
+    .client-info { flex: 1; min-width: 0; }
+    .client-name { font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .client-uid  { font-size: 0.71rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+    .client-time { font-size: 0.7rem; color: var(--muted); white-space: nowrap; }
+
+    /* ── Event Type Donut ──────────────────────────────────── */
+    .donut-wrap { padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+    .donut-svg { width: 140px; height: 140px; }
+    .donut-legend { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+    .legend-item { display: flex; align-items: center; gap: 10px; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .legend-label { font-size: 0.79rem; color: var(--muted2); flex: 1; }
+    .legend-count { font-size: 0.79rem; font-weight: 600; color: var(--text); font-family: 'JetBrains Mono', monospace; }
+
+    /* ── Scrollbar ─── */
+    #feed::-webkit-scrollbar, #client-list-body::-webkit-scrollbar { width: 4px; }
+    #feed::-webkit-scrollbar-thumb, #client-list-body::-webkit-scrollbar-thumb { background: rgba(0,242,254,0.2); border-radius: 4px; }
+
+    /* ── Toast ──────────────────────────────────────────────── */
+    #toast-container {
+      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+      display: flex; flex-direction: column-reverse; gap: 10px;
+    }
+    .toast {
+      padding: 12px 18px;
+      background: rgba(12,19,35,0.95);
+      border: 1px solid var(--border-hi);
+      border-radius: 12px;
+      font-size: 0.82rem;
+      backdrop-filter: blur(20px);
+      animation: toastIn 0.35s cubic-bezier(0.2,0.8,0.3,1);
+      max-width: 300px;
+      display: flex; align-items: flex-start; gap: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(20px) scale(0.95); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .toast-icon { font-size: 1.1rem; flex-shrink: 0; }
+    .toast-text .toast-title { font-weight: 700; font-size: 0.83rem; }
+    .toast-text .toast-sub   { color: var(--muted2); font-size: 0.77rem; margin-top: 1px; }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ───────────────────────────────────────────────── -->
+<header>
+  <div class="brand">
+    <div class="brand-icon">📡</div>
+    <div>
+      <div class="brand-name">Traffic Monitor</div>
+      <div class="brand-sub">AI Trading Bot — Real-time Client Activity</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="conn-status">
+      <div class="conn-dot" id="conn-dot"></div>
+      <span id="conn-label">Connecting…</span>
+    </div>
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      LIVE
+    </div>
+    <div class="server-time" id="server-time">--:--:--</div>
+  </div>
+</header>
+
+<!-- ── Main ─────────────────────────────────────────────────── -->
+<main>
+
+  <!-- Stats Row -->
+  <div class="stats-row" id="stats-row">
+    <div class="stat-card" style="--accent-line: linear-gradient(90deg,#10f08c,#38bdf8)">
+      <div class="stat-icon">👥</div>
+      <div class="stat-label">Total Users</div>
+      <div class="stat-value" id="stat-total" style="--val-color: linear-gradient(90deg,#10f08c,#38bdf8)">—</div>
+      <div class="stat-delta">All registered</div>
+    </div>
+    <div class="stat-card" style="--accent-line: linear-gradient(90deg,#00f2fe,#a78bfa)">
+      <div class="stat-icon">🟢</div>
+      <div class="stat-label">Active Today</div>
+      <div class="stat-value" id="stat-active" style="--val-color: linear-gradient(90deg,#00f2fe,#a78bfa)">—</div>
+      <div class="stat-delta">Unique interactions</div>
+    </div>
+    <div class="stat-card" style="--accent-line: linear-gradient(90deg,#fbbf24,#fb923c)">
+      <div class="stat-icon">✨</div>
+      <div class="stat-label">New Today</div>
+      <div class="stat-value" id="stat-new" style="--val-color: linear-gradient(90deg,#fbbf24,#fb923c)">—</div>
+      <div class="stat-delta" id="stat-new-hour">— new this hour</div>
+    </div>
+    <div class="stat-card" style="--accent-line: linear-gradient(90deg,#f43f5e,#fb923c)">
+      <div class="stat-icon">⚡</div>
+      <div class="stat-label">Events Today</div>
+      <div class="stat-value" id="stat-events" style="--val-color: linear-gradient(90deg,#f43f5e,#fb923c)">—</div>
+      <div class="stat-delta">Total interactions</div>
+    </div>
+    <div class="stat-card" style="--accent-line: linear-gradient(90deg,#10f08c,#fbbf24)">
+      <div class="stat-icon">📈</div>
+      <div class="stat-label">Open Positions</div>
+      <div class="stat-value" id="stat-positions" style="--val-color: linear-gradient(90deg,#10f08c,#fbbf24)">—</div>
+      <div class="stat-delta">Paper trades</div>
+    </div>
+    <div class="stat-card" style="--accent-line: linear-gradient(90deg,#fbbf24,#10f08c)">
+      <div class="stat-icon">💰</div>
+      <div class="stat-label">Pending Deposits</div>
+      <div class="stat-value" id="stat-deposits" style="--val-color: linear-gradient(90deg,#fbbf24,#10f08c)">—</div>
+      <div class="stat-delta">Awaiting review</div>
+    </div>
+  </div>
+
+  <!-- Body Grid -->
+  <div class="body-grid">
+
+    <!-- ── Left: Activity Feed ─────────────────────────────── -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          ⚡ Live Activity Feed
+          <span class="panel-badge" id="feed-count">0 events</span>
+        </div>
+        <div class="panel-actions">
+          <button class="panel-btn" id="btn-pause">⏸ Pause</button>
+          <button class="panel-btn" id="btn-clear">🗑 Clear</button>
+        </div>
+      </div>
+      <div id="feed">
+        <div class="feed-empty" id="feed-empty">
+          <div class="empty-icon">📭</div>
+          <div>Waiting for bot activity…</div>
+          <div style="font-size:0.75rem;color:var(--muted)">Events will appear here in real-time</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Right Sidebar ───────────────────────────────────── -->
+    <div class="sidebar">
+
+      <!-- Recent Clients panel -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">👥 Recent Clients</div>
+          <span class="panel-badge" id="client-count">0</span>
+        </div>
+        <div id="client-list-body">
+          <div class="feed-empty" id="client-empty" style="height:120px">
+            <div class="empty-icon" style="font-size:1.8rem">👤</div>
+            <div>No clients yet</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Event Type breakdown -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">📊 Event Breakdown</div>
+        </div>
+        <div class="donut-wrap">
+          <svg class="donut-svg" viewBox="0 0 140 140" id="donut-svg">
+            <circle cx="70" cy="70" r="54" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="16"/>
+            <!-- arcs injected by JS -->
+          </svg>
+          <div class="donut-legend" id="donut-legend">
+            <div class="legend-item">
+              <div class="legend-dot" style="background:var(--green)"></div>
+              <span class="legend-label">New Users</span>
+              <span class="legend-count" id="cnt-new_user">0</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background:var(--blue)"></div>
+              <span class="legend-label">Returning</span>
+              <span class="legend-count" id="cnt-returning">0</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background:var(--cyan)"></div>
+              <span class="legend-label">Messages</span>
+              <span class="legend-count" id="cnt-message">0</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background:var(--yellow)"></div>
+              <span class="legend-label">Deposits</span>
+              <span class="legend-count" id="cnt-deposit">0</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background:var(--orange)"></div>
+              <span class="legend-label">Withdrawals</span>
+              <span class="legend-count" id="cnt-withdraw">0</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background:var(--purple)"></div>
+              <span class="legend-label">Commands</span>
+              <span class="legend-count" id="cnt-command">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /sidebar -->
+  </div><!-- /body-grid -->
+</main>
+
+<div id="toast-container"></div>
+
+<script>
+// ── Config ──────────────────────────────────────────────────
+const STATS_INTERVAL = 8000;      // refresh stats every 8 s
+const MAX_FEED_ITEMS = 200;       // cap feed list in DOM
+const MAX_CLIENTS    = 50;        // cap client sidebar list
+
+// ── State ───────────────────────────────────────────────────
+let paused   = false;
+let feedCount = 0;
+const eventCounts = { new_user:0, returning:0, message:0, deposit:0, withdraw:0, command:0, trade_open:0, trade_close:0 };
+const clientsMap = new Map(); // user_id → {first_name, username, last_ts}
+
+// ── Helpers ─────────────────────────────────────────────────
+function fmtTime(tsStr) {
+  try {
+    const d = tsStr ? new Date(tsStr.endsWith('Z') ? tsStr : tsStr + 'Z') : new Date();
+    return d.toLocaleTimeString('en-GB', { hour12: false });
+  } catch { return ''; }
+}
+function ago(tsStr) {
+  try {
+    const diff = Math.floor((Date.now() - new Date(tsStr.endsWith('Z') ? tsStr : tsStr+'Z').getTime()) / 1000);
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+    return `${Math.floor(diff/3600)}h ago`;
+  } catch { return ''; }
+}
+function initials(name) {
+  if (!name) return '?';
+  return name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+}
+function typeLabel(type) {
+  const map = {
+    new_user:    '🆕 New User',
+    returning:   '↩ Returning',
+    message:     '💬 Message',
+    deposit:     '💰 Deposit',
+    withdraw:    '🕊 Withdraw',
+    command:     '⌨ Command',
+    trade_open:  '📈 Trade Open',
+    trade_close: '📉 Trade Close',
+  };
+  return map[type] || type;
+}
+
+// ── Donut Chart ─────────────────────────────────────────────
+const DONUT_COLORS = {
+  new_user:    '#10f08c',
+  returning:   '#38bdf8',
+  message:     '#00f2fe',
+  deposit:     '#fbbf24',
+  withdraw:    '#fb923c',
+  command:     '#a78bfa',
+  trade_open:  '#10f08c',
+  trade_close: '#f43f5e',
+};
+const DONUT_R = 54, DONUT_CX = 70, DONUT_CY = 70, DONUT_STROKE = 16;
+const DONUT_CIRC = 2 * Math.PI * DONUT_R;
+
+function updateDonut() {
+  const svg = document.getElementById('donut-svg');
+  // remove old arcs
+  svg.querySelectorAll('.donut-arc').forEach(el => el.remove());
+
+  const keys = ['new_user','returning','message','deposit','withdraw','command'];
+  const total = keys.reduce((s, k) => s + (eventCounts[k] || 0), 0);
+  if (total === 0) return;
+
+  let offset = 0;
+  keys.forEach(k => {
+    const count = eventCounts[k] || 0;
+    if (!count) return;
+    const frac = count / total;
+    const dash = frac * DONUT_CIRC;
+    const gap  = DONUT_CIRC - dash;
+
+    const arc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    arc.setAttribute('class', 'donut-arc');
+    arc.setAttribute('cx', DONUT_CX);
+    arc.setAttribute('cy', DONUT_CY);
+    arc.setAttribute('r', DONUT_R);
+    arc.setAttribute('fill', 'none');
+    arc.setAttribute('stroke', DONUT_COLORS[k] || '#888');
+    arc.setAttribute('stroke-width', DONUT_STROKE);
+    arc.setAttribute('stroke-dasharray', `${dash} ${gap}`);
+    arc.setAttribute('stroke-dashoffset', DONUT_CIRC * 0.25 - offset * DONUT_CIRC);
+    arc.style.transition = 'stroke-dasharray 0.4s ease';
+    svg.appendChild(arc);
+
+    offset += frac;
+  });
+}
+
+// ── Feed ────────────────────────────────────────────────────
+function addFeedItem(ev) {
+  if (paused) return;
+  const empty = document.getElementById('feed-empty');
+  if (empty) empty.remove();
+
+  feedCount++;
+  document.getElementById('feed-count').textContent = `${feedCount} event${feedCount !== 1 ? 's' : ''}`;
+
+  const feed = document.getElementById('feed');
+  const item = document.createElement('div');
+  item.className = `feed-item ${ev.type || ''}`;
+
+  const userName = ev.first_name || ev.username || `User ${ev.user_id || '?'}`;
+  const userHandle = ev.username ? `@${ev.username}` : (ev.user_id ? `#${ev.user_id}` : '');
+
+  item.innerHTML = `
+    <div class="event-dot"></div>
+    <div class="event-body">
+      <div class="event-top">
+        <span class="event-type-badge badge-${ev.type}">${typeLabel(ev.type)}</span>
+        <span class="event-user">${userName}</span>
+        <span class="event-username">${userHandle}</span>
+      </div>
+      <div class="event-detail">${ev.detail || ev.action || ''}</div>
+    </div>
+    <div class="event-time">${fmtTime(ev.ts)}</div>
+  `;
+
+  feed.insertBefore(item, feed.firstChild);
+
+  // Cap DOM size
+  const items = feed.querySelectorAll('.feed-item');
+  if (items.length > MAX_FEED_ITEMS) {
+    items[items.length - 1].remove();
+  }
+
+  // Update counters
+  const key = ev.type;
+  if (key in eventCounts) eventCounts[key]++;
+  const el = document.getElementById(`cnt-${key}`);
+  if (el) el.textContent = eventCounts[key];
+  updateDonut();
+
+  // Update clients sidebar
+  if (ev.user_id) updateClientEntry(ev);
+}
+
+// ── Client Sidebar ──────────────────────────────────────────
+function updateClientEntry(ev) {
+  const uid = ev.user_id;
+  clientsMap.set(uid, {
+    first_name: ev.first_name || '',
+    username: ev.username || '',
+    ts: ev.ts,
+    type: ev.type,
+  });
+
+  const empty = document.getElementById('client-empty');
+  if (empty) empty.remove();
+  document.getElementById('client-count').textContent = clientsMap.size;
+
+  renderClientList();
+}
+
+function renderClientList() {
+  const body = document.getElementById('client-list-body');
+  // Remove old rows
+  body.querySelectorAll('.client-row').forEach(el => el.remove());
+
+  // Sort by most recent
+  const sorted = [...clientsMap.entries()]
+    .sort((a,b) => new Date(b[1].ts) - new Date(a[1].ts))
+    .slice(0, MAX_CLIENTS);
+
+  sorted.forEach(([uid, data]) => {
+    const row = document.createElement('div');
+    row.className = 'client-row';
+    const name = data.first_name || data.username || `User ${uid}`;
+    const handle = data.username ? `@${data.username}` : `ID: ${uid}`;
+    row.innerHTML = `
+      <div class="avatar">${initials(name)}</div>
+      <div class="client-info">
+        <div class="client-name">${name}</div>
+        <div class="client-uid">${handle}</div>
+      </div>
+      <div class="client-time">${ago(data.ts)}</div>
+    `;
+    body.appendChild(row);
+  });
+}
+
+// ── Toast ────────────────────────────────────────────────────
+function showToast(icon, title, sub, duration = 4500) {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.innerHTML = `
+    <div class="toast-icon">${icon}</div>
+    <div class="toast-text">
+      <div class="toast-title">${title}</div>
+      <div class="toast-sub">${sub}</div>
+    </div>
+  `;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.transition = 'opacity 0.4s, transform 0.4s';
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(10px)';
+    setTimeout(() => toast.remove(), 400);
+  }, duration);
+}
+
+// ── Stats fetch ──────────────────────────────────────────────
+function fetchStats() {
+  fetch('/api/stats')
+    .then(r => r.json())
+    .then(s => {
+      document.getElementById('stat-total').textContent     = s.total_users ?? '—';
+      document.getElementById('stat-active').textContent    = s.active_today ?? '—';
+      document.getElementById('stat-new').textContent       = s.new_today ?? '—';
+      document.getElementById('stat-new-hour').textContent  = `${s.new_hour ?? 0} new this hour`;
+      document.getElementById('stat-events').textContent    = s.events_today ?? '—';
+      document.getElementById('stat-positions').textContent = s.open_positions ?? '—';
+      document.getElementById('stat-deposits').textContent  = s.pending_deposits ?? '—';
+    })
+    .catch(() => {});
+}
+
+// ── Load historic events ─────────────────────────────────────
+function loadHistory() {
+  fetch('/api/activity')
+    .then(r => r.json())
+    .then(events => {
+      events.forEach(ev => addFeedItem(ev));
+    })
+    .catch(() => {});
+}
+
+// ── SSE Connection ───────────────────────────────────────────
+function connectSSE() {
+  const dot   = document.getElementById('conn-dot');
+  const label = document.getElementById('conn-label');
+
+  const es = new EventSource('/stream');
+
+  es.onopen = () => {
+    dot.classList.add('connected');
+    label.textContent = 'Connected';
+  };
+
+  es.onmessage = (e) => {
+    try {
+      const ev = JSON.parse(e.data);
+      addFeedItem(ev);
+      // Show toast for high-value events
+      if (ev.type === 'new_user') {
+        showToast('🆕', `New Client: ${ev.first_name || ev.username || 'User'}`, ev.detail || '');
+      } else if (ev.type === 'deposit') {
+        showToast('💰', 'Deposit Request', ev.detail || '');
+      } else if (ev.type === 'withdraw') {
+        showToast('🕊', 'Withdrawal Request', ev.detail || '');
+      }
+      // Refresh stats on each event
+      fetchStats();
+    } catch {}
+  };
+
+  es.onerror = () => {
+    dot.classList.remove('connected');
+    label.textContent = 'Reconnecting…';
+    es.close();
+    setTimeout(connectSSE, 3000);
+  };
+}
+
+// ── Controls ─────────────────────────────────────────────────
+document.getElementById('btn-pause').addEventListener('click', function() {
+  paused = !paused;
+  this.textContent = paused ? '▶ Resume' : '⏸ Pause';
+});
+document.getElementById('btn-clear').addEventListener('click', () => {
+  const feed = document.getElementById('feed');
+  feed.innerHTML = `
+    <div class="feed-empty" id="feed-empty">
+      <div class="empty-icon">📭</div>
+      <div>Feed cleared</div>
+    </div>`;
+  feedCount = 0;
+  document.getElementById('feed-count').textContent = '0 events';
+});
+
+// ── Clock ─────────────────────────────────────────────────────
+function updateClock() {
+  document.getElementById('server-time').textContent =
+    new Date().toLocaleTimeString('en-GB', { hour12: false });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── Boot ──────────────────────────────────────────────────────
+fetchStats();
+loadHistory();
+connectSSE();
+setInterval(fetchStats, STATS_INTERVAL);
+setInterval(renderClientList, 15000); // refresh "ago" timestamps
+</script>
+</body>
+</html>

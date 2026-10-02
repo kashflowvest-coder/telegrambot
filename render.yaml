@@ -1,0 +1,14 @@
+services:
+  # ── Traffic Monitor Web Service ──────────────────────────────────────────────
+  - type: web
+    name: ai-trading-monitor
+    env: python
+    region: frankfurt          # Choose closest to your users
+    plan: free                 # Free tier (spins down after 15min inactivity)
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn render_traffic_monitor:app --workers 2 --threads 4 --timeout 120 --bind 0.0.0.0:$PORT
+    envVars:
+      - key: MONGODB_URI
+        sync: false # Set this value in the Render Dashboard
+      - key: PYTHON_VERSION
+        value: "3.11.0"

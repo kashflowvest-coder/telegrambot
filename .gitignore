@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyc
+
+# Environment secrets - NEVER commit
+.env
+
+# SQLite database (local only)
+*.db
+
+# IDE
+.vscode/
+.idea/
+
+# Temp/audit scripts
+audit_callbacks.py
+test_format_strings.py

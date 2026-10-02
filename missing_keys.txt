@@ -1,0 +1,44 @@
+/
+:
+Usage: `/verifyuser <telegram_user_id>`
+\n
+awaiting_step
+bollinger
+change_24h
+crossover
+dep_amount
+dep_network
+error
+exchange
+first_name
+histogram
+indicators
+is_auto_trading
+is_verified
+language
+macd
+memo
+open_positions_count
+paper_balance
+percent_b
+reasons
+risk_percent
+risk_reward
+rsi
+success
+total_realized_pnl
+total_volume
+trading_mode
+trend
+user_id
+verified_users
+volume_ratio
+win_rate
+⚠️ Insufficient available balance for this withdrawal.
+⚠️ Invalid amount. Example: `/deposit USDT_TRC20 500 0xTXID`
+⚠️ Invalid withdrawal amount.
+⚠️ Minimum withdrawal is $50.00 USD.
+⚠️ Usage / Użycie: `/otp 123456`
+⛔ Unauthorized.
+⛔ Unauthorized. Administrator access only.
+❌ Deposit process cancelled.
