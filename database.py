@@ -169,7 +169,7 @@ def init_db():
         conn.commit()
 
 
-def get_or_create_user(user_id: int, username: str = "", first_name: str = "") -> Dict[str, Any]:
+def get_or_create_user(user_id: int, username: str = "", first_name: str = "", lang_code: str = "en") -> Dict[str, Any]:
     """Retrieve existing user or register a new user."""
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -187,10 +187,10 @@ def get_or_create_user(user_id: int, username: str = "", first_name: str = "") -
         else:
             cursor.execute("""
                 INSERT INTO users (user_id, username, first_name, trading_mode, exchange, paper_balance, risk_percent, language)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'en')
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 user_id, username, first_name, DEFAULT_TRADING_MODE, DEFAULT_EXCHANGE,
-                DEFAULT_PAPER_BALANCE, DEFAULT_RISK_PERCENT
+                DEFAULT_PAPER_BALANCE, DEFAULT_RISK_PERCENT, lang_code
             ))
             conn.commit()
             cursor.execute("SELECT * FROM users WHERE user_id = ?", (user_id,))

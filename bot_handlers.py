@@ -238,7 +238,7 @@ def format_settings_message(user: Dict[str, Any], lang: str = "en") -> str:
 async def handle_start(update, context):
     """Handle /start command matching the exact user interface from screenshot."""
     u = update.effective_user
-    user = get_or_create_user(u.id, u.username or "", u.first_name or "")
+    user = get_or_create_user(u.id, u.username or "", u.first_name or "", u.language_code or "en")
     lang = user.get("language", "en")
     is_admin = u.id in ADMIN_USER_IDS
     is_ver = bool(user.get("is_verified", 0)) or is_admin
