@@ -10,5 +10,7 @@ services:
     envVars:
       - key: MONGODB_URI
         sync: false # Set this value in the Render Dashboard
+      - key: MONITOR_PASSWORD
+        sync: false # Set a password to protect the dashboard (leave unset = open access)
       - key: PYTHON_VERSION
         value: "3.11.0"

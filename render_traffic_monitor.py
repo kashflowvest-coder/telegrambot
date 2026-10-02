@@ -33,14 +33,16 @@ try:
 except ImportError:
     _HAS_MONGO = False
 
-from flask import Flask, Response, jsonify, send_from_directory
+from flask import Flask, Response, jsonify, send_from_directory, request
 from bson.objectid import ObjectId
 from pymongo import MongoClient
 
 app = Flask(__name__, static_folder=None)
+app.config["JSON_SORT_KEYS"] = False
 
-# ── Database URL (set in Render environment) ───────────────────────────────────
-MONGODB_URI = os.environ.get("MONGODB_URI", "")
+# ── Database / Config (set in Render environment) ─────────────────────────────
+MONGODB_URI      = os.environ.get("MONGODB_URI", "")
+MONITOR_PASSWORD = os.environ.get("MONITOR_PASSWORD", "")  # leave blank = open access
 
 
 def _get_db():
@@ -247,6 +249,38 @@ def api_clients():
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route("/api/auth", methods=["POST"])
+def api_auth():
+    """Password gate. If MONITOR_PASSWORD is empty, always returns ok."""
+    if not MONITOR_PASSWORD:
+        return jsonify({"ok": True})
+    data = request.get_json(silent=True) or {}
+    if data.get("password") == MONITOR_PASSWORD:
+        return jsonify({"ok": True})
+    return jsonify({"ok": False}), 401
+
+
+@app.route("/api/hourly")
+def api_hourly():
+    """Return event counts per hour for the last 24 hours."""
+    try:
+        from datetime import timedelta
+        db = _get_db()
+        activity_col = db.activity_log
+        now = datetime.utcnow()
+        result = []
+        for i in range(23, -1, -1):
+            h_start = (now - timedelta(hours=i)).replace(minute=0, second=0, microsecond=0)
+            h_end   = h_start + timedelta(hours=1)
+            count = activity_col.count_documents({
+                "ts": {"$gte": h_start.isoformat(), "$lt": h_end.isoformat()}
+            })
+            result.append({"hour": h_start.strftime("%H:00"), "count": count})
+        return jsonify(result)
+    except Exception:
+        return jsonify([])
+
 
 @app.route("/health")
 def health():

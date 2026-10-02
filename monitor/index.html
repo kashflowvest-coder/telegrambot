@@ -419,9 +419,113 @@
     #notif-btn:hover { border-color: var(--border-hi); color: var(--cyan); }
     #notif-btn.granted { color: var(--green); border-color: rgba(16,240,140,0.3); background: var(--green-dim); }
     #notif-btn.denied  { color: var(--red);   border-color: rgba(244,63,94,0.3); }
+
+    /* ── Password Overlay ────────────────────────────────────── */
+    #auth-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(5,8,16,0.98);
+      display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(20px);
+      transition: opacity 0.4s;
+    }
+    #auth-overlay.hidden { opacity: 0; pointer-events: none; }
+    #auth-overlay.gone { display: none; }
+    .auth-box {
+      background: var(--card); border: 1px solid var(--border-hi);
+      border-radius: 24px; padding: 44px 40px; width: 360px;
+      text-align: center; box-shadow: 0 0 80px rgba(0,242,254,0.10);
+      animation: toastIn 0.4s cubic-bezier(0.2,0.8,0.3,1);
+    }
+    .auth-icon { font-size: 3.2rem; margin-bottom: 18px; }
+    .auth-title { font-size: 1.35rem; font-weight: 800; margin-bottom: 6px; }
+    .auth-sub { font-size: 0.82rem; color: var(--muted); margin-bottom: 28px; line-height: 1.5; }
+    #auth-input {
+      width: 100%; padding: 13px 18px; border-radius: 12px;
+      border: 1px solid var(--border); background: rgba(255,255,255,0.05);
+      color: var(--text); font-family: 'JetBrains Mono', monospace;
+      font-size: 1rem; text-align: center; letter-spacing: 0.12em;
+      outline: none; margin-bottom: 14px; transition: border-color 0.2s;
+    }
+    #auth-input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(0,242,254,0.1); }
+    #auth-submit {
+      width: 100%; padding: 13px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      border: none; color: #000; font-weight: 800; font-size: 0.95rem;
+      cursor: pointer; font-family: inherit; transition: opacity 0.2s, transform 0.15s;
+    }
+    #auth-submit:hover { opacity: 0.88; transform: translateY(-1px); }
+    #auth-error { color: var(--red); font-size: 0.8rem; margin-top: 14px; min-height: 20px; }
+
+    /* ── Hourly Chart ────────────────────────────────────────── */
+    .hour-chart-wrap { padding: 14px 20px 10px; }
+    .hour-chart {
+      display: flex; align-items: flex-end; gap: 3px;
+      height: 70px; width: 100%;
+    }
+    .hour-bar-wrap {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; gap: 3px;
+    }
+    .hour-bar {
+      width: 100%; min-height: 2px; border-radius: 3px 3px 0 0;
+      background: linear-gradient(180deg, var(--cyan), rgba(0,242,254,0.2));
+      transition: height 0.5s cubic-bezier(0.34,1.56,0.64,1);
+      cursor: default;
+    }
+    .hour-bar:hover { opacity: 0.8; }
+    .hour-bar-wrap.peak .hour-bar {
+      background: linear-gradient(180deg, var(--yellow), rgba(251,191,36,0.2));
+    }
+    .hour-bar-wrap.hot .hour-bar {
+      background: linear-gradient(180deg, var(--orange), rgba(251,146,60,0.2));
+    }
+    .hour-label { font-size: 0.52rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+    .chart-legend { display: flex; gap: 14px; padding: 6px 20px 14px; }
+    .chart-leg-item { display: flex; align-items: center; gap: 5px; font-size: 0.7rem; color: var(--muted); }
+    .leg-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+    /* ── Country Breakdown ───────────────────────────────────── */
+    .country-list { padding: 10px 20px 14px; display: flex; flex-direction: column; gap: 9px; }
+    .country-row { display: flex; align-items: center; gap: 10px; }
+    .country-flag { font-size: 1.05rem; width: 22px; flex-shrink: 0; }
+    .country-name { font-size: 0.78rem; color: var(--muted2); flex: 1; }
+    .country-bar-wrap { width: 70px; height: 5px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; }
+    .country-bar { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--cyan), var(--purple)); transition: width 0.5s; }
+    .country-count { font-size: 0.75rem; font-weight: 600; font-family: 'JetBrains Mono', monospace; color: var(--muted2); min-width: 18px; text-align: right; }
+
+    /* ── Mobile Responsive ───────────────────────────────────── */
+    @media (max-width: 900px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+      .body-grid { grid-template-columns: 1fr; }
+      .sidebar { gap: 16px; }
+      main { padding: 14px 12px; }
+    }
+    @media (max-width: 600px) {
+      header { padding: 10px 14px; gap: 10px; }
+      .brand-name { font-size: 0.95rem; }
+      .brand-sub { display: none; }
+      #notif-btn { display: none; }
+      .server-time { display: none; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .stat-card { padding: 14px; }
+      .stat-value { font-size: 1.6rem; }
+      .auth-box { width: 92vw; padding: 32px 24px; }
+    }
   </style>
 </head>
 <body>
+
+<!-- ── Password Overlay ──────────────────────────────────────── -->
+<div id="auth-overlay">
+  <div class="auth-box">
+    <div class="auth-icon">🔐</div>
+    <div class="auth-title">Monitor Access</div>
+    <div class="auth-sub">Enter the dashboard password to<br>access live client activity</div>
+    <input type="password" id="auth-input" placeholder="Password" autocomplete="off">
+    <button id="auth-submit">Unlock →</button>
+    <div id="auth-error"></div>
+  </div>
+</div>
 
 <!-- ── Header ───────────────────────────────────────────────── -->
 <header>
@@ -493,12 +597,44 @@
       <div class="stat-value" id="stat-volume" style="--val-color: linear-gradient(90deg,#10f08c,#fb923c); font-size:1.3rem">—</div>
       <div class="stat-delta">All-time deposits</div>
     </div>
+    <div class="stat-card" style="--accent-line: linear-gradient(90deg,#a78bfa,#f43f5e)">
+      <div class="stat-icon">🎯</div>
+      <div class="stat-label">Conversion Rate</div>
+      <div class="stat-value" id="stat-conversion" style="--val-color: linear-gradient(90deg,#a78bfa,#f43f5e); font-size:1.5rem">—</div>
+      <div class="stat-delta">Depositors / total users</div>
+    </div>
+    <div class="stat-card" style="--accent-line: linear-gradient(90deg,#00f2fe,#fbbf24)">
+      <div class="stat-icon">📊</div>
+      <div class="stat-label">Avg. Deposit</div>
+      <div class="stat-value" id="stat-avgdep" style="--val-color: linear-gradient(90deg,#00f2fe,#fbbf24); font-size:1.3rem">—</div>
+      <div class="stat-delta">Per depositing client</div>
+    </div>
   </div>
 
   <!-- Body Grid -->
   <div class="body-grid">
 
     <!-- ── Left: Activity Feed ─────────────────────────────── -->
+    <!-- ── Left column: chart + feed ───────────────────── -->
+    <div style="display:flex;flex-direction:column;gap:20px">
+
+    <!-- Hourly Activity Chart -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">⏰ Activity — Last 24 Hours</div>
+        <span class="panel-badge" id="hourly-peak">—</span>
+      </div>
+      <div class="hour-chart-wrap">
+        <div class="hour-chart" id="hour-chart"></div>
+      </div>
+      <div class="chart-legend">
+        <div class="chart-leg-item"><div class="leg-dot" style="background:var(--cyan)"></div>Normal</div>
+        <div class="chart-leg-item"><div class="leg-dot" style="background:var(--orange)"></div>High</div>
+        <div class="chart-leg-item"><div class="leg-dot" style="background:var(--yellow)"></div>Peak</div>
+      </div>
+    </div>
+
+    <!-- Activity Feed -->
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title">
@@ -517,7 +653,9 @@
           <div style="font-size:0.75rem;color:var(--muted)">Events will appear here in real-time</div>
         </div>
       </div>
-    </div>
+    </div> <!-- /activity feed panel -->
+    </div> <!-- /left column wrapper -->
+
 
     <!-- ── Right Sidebar ───────────────────────────────────── -->
     <div class="sidebar">
@@ -541,6 +679,17 @@
             <div class="empty-icon" style="font-size:1.8rem">👤</div>
             <div>No clients yet</div>
           </div>
+        </div>
+      </div>
+
+      <!-- Country Breakdown panel -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">🌍 Audience by Region</div>
+          <span class="panel-badge" id="country-count">0</span>
+        </div>
+        <div class="country-list" id="country-list">
+          <div style="font-size:0.8rem;color:var(--muted);padding:4px 0">No data yet</div>
         </div>
       </div>
 
@@ -876,7 +1025,13 @@ function loadClients() {
 
       // Animated volume update
       const totalVol = clients.reduce((sum, c) => sum + (c.total_deposited || 0), 0);
+      const depositors = clients.filter(c => c.total_deposited > 0).length;
+      const totalUsers = clients.length;
+
       const volEl = document.getElementById('stat-volume');
+      const convEl = document.getElementById('stat-conversion');
+      const avgEl = document.getElementById('stat-avgdep');
+
       if (volEl) {
         const newText = totalVol > 0
           ? `$${totalVol.toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0})}`
@@ -886,6 +1041,58 @@ function loadClients() {
           volEl.classList.add('flash');
           setTimeout(() => volEl.classList.remove('flash'), 600);
         }
+      }
+
+      if (convEl && totalUsers > 0) {
+        const conv = ((depositors / totalUsers) * 100).toFixed(1);
+        convEl.textContent = `${conv}%`;
+      }
+
+      if (avgEl) {
+        const avg = depositors > 0 ? totalVol / depositors : 0;
+        avgEl.textContent = avg > 0 ? `$${avg.toLocaleString('en-US', {maximumFractionDigits:0})}` : '$0';
+      }
+
+      // Country breakdown
+      const countries = {};
+      clients.forEach(c => {
+        let flag = '🌐';
+        let name = 'Other';
+        if (c.lang) {
+          const l = c.lang.toLowerCase();
+          if (l.startsWith('en')) { flag = '🇬🇧'; name = 'EN'; }
+          else if (l.startsWith('pl')) { flag = '🇵🇱'; name = 'PL'; }
+          else if (l.startsWith('ru')) { flag = '🇷🇺'; name = 'RU'; }
+          else if (l.startsWith('uk')) { flag = '🇺🇦'; name = 'UA'; }
+          else if (l.startsWith('fr')) { flag = '🇫🇷'; name = 'FR'; }
+          else if (l.startsWith('de')) { flag = '🇩🇪'; name = 'DE'; }
+          else if (l.startsWith('es')) { flag = '🇪🇸'; name = 'ES'; }
+          else if (l.startsWith('zh')) { flag = '🇨🇳'; name = 'ZH'; }
+        }
+        const key = flag + '|' + name;
+        countries[key] = (countries[key] || 0) + 1;
+      });
+
+      const cList = Object.entries(countries).map(([k, v]) => ({ key: k, count: v })).sort((a,b) => b.count - a.count);
+      const cListEl = document.getElementById('country-list');
+      if (cListEl) {
+        cListEl.innerHTML = '';
+        const maxC = cList.length > 0 ? cList[0].count : 1;
+        cList.forEach(c => {
+          const [flag, name] = c.key.split('|');
+          const pct = Math.max(5, (c.count / maxC) * 100);
+          cListEl.innerHTML += `
+            <div class="country-row">
+              <div class="country-flag">${flag}</div>
+              <div class="country-name">${name}</div>
+              <div class="country-bar-wrap">
+                <div class="country-bar" style="width:${pct}%"></div>
+              </div>
+              <div class="country-count">${c.count}</div>
+            </div>
+          `;
+        });
+        document.getElementById('country-count').textContent = clients.length;
       }
 
       // Apply current search filter
@@ -1085,13 +1292,89 @@ notifBtn.addEventListener('click', async () => {
 
 updateNotifBtn(); // set initial state on load
 
-// ── Boot ──────────────────────────────────────────────────────
-fetchStats();
-loadHistory();
-loadClients();
-connectSSE();
-setInterval(fetchStats, STATS_INTERVAL);
-setInterval(loadClients, 30000);  // refresh client deposits + volume every 30s
+// ── Hourly Chart ──────────────────────────────────────────────
+function loadHourlyChart() {
+  fetch('/api/hourly')
+    .then(r => r.json())
+    .then(data => {
+      const wrap = document.getElementById('hour-chart');
+      if (!wrap || !Array.isArray(data)) return;
+      wrap.innerHTML = '';
+      const maxCount = Math.max(...data.map(d => d.count), 1);
+      
+      let peakCount = 0;
+      let peakHour = '';
+      
+      data.forEach(d => {
+        if (d.count > peakCount) { peakCount = d.count; peakHour = d.hour; }
+        
+        let cls = 'hour-bar-wrap';
+        if (d.count > 0) {
+          if (d.count === maxCount) cls += ' peak';
+          else if (d.count > maxCount * 0.5) cls += ' hot';
+        }
+        
+        const pct = Math.max(2, (d.count / maxCount) * 100); // 2% min height for visibility
+        
+        const el = document.createElement('div');
+        el.className = cls;
+        el.title = `${d.hour} — ${d.count} events`;
+        el.innerHTML = `
+          <div class="hour-bar" style="height:${pct}%"></div>
+          <div class="hour-label">${d.hour.split(':')[0]}</div>
+        `;
+        wrap.appendChild(el);
+      });
+      
+      const peakEl = document.getElementById('hourly-peak');
+      if (peakEl) {
+          peakEl.textContent = peakCount > 0 ? `${peakCount} peak at ${peakHour}` : '—';
+      }
+    })
+    .catch(() => {});
+}
+
+// ── Auth & Boot ───────────────────────────────────────────────
+const authOverlay = document.getElementById('auth-overlay');
+const authInput = document.getElementById('auth-input');
+const authSubmit = document.getElementById('auth-submit');
+const authError = document.getElementById('auth-error');
+
+function checkAuth(pw = "") {
+  fetch('/api/auth', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: pw })
+  }).then(r => {
+    if (r.ok) {
+      if(authOverlay) {
+        authOverlay.classList.add('hidden');
+        setTimeout(() => authOverlay.classList.add('gone'), 400);
+      }
+      boot();
+    } else {
+      if (pw && authError) authError.textContent = 'Incorrect password';
+    }
+  }).catch(() => {
+    if (pw && authError) authError.textContent = 'Server error. Try again.';
+  });
+}
+
+if(authSubmit) authSubmit.addEventListener('click', () => checkAuth(authInput.value));
+if(authInput) authInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkAuth(authInput.value); });
+
+function boot() {
+  fetchStats();
+  loadHistory();
+  loadClients();
+  loadHourlyChart();
+  connectSSE();
+  setInterval(fetchStats, STATS_INTERVAL);
+  setInterval(loadClients, 30000);  // refresh client deposits + volume every 30s
+  setInterval(loadHourlyChart, 60000 * 15); // refresh chart every 15 min
+}
+
+checkAuth(); // verify on load
 </script>
 </body>
 </html>
