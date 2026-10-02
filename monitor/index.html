@@ -407,6 +407,18 @@
     .toast-icon { font-size: 1.1rem; flex-shrink: 0; }
     .toast-text .toast-title { font-weight: 700; font-size: 0.83rem; }
     .toast-text .toast-sub   { color: var(--muted2); font-size: 0.77rem; margin-top: 1px; }
+
+    /* ── Notification Bell ───────────────────────────────── */
+    #notif-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 13px; border-radius: 20px; cursor: pointer;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--muted2); font-size: 0.78rem; font-weight: 600;
+      font-family: inherit; transition: all 0.2s;
+    }
+    #notif-btn:hover { border-color: var(--border-hi); color: var(--cyan); }
+    #notif-btn.granted { color: var(--green); border-color: rgba(16,240,140,0.3); background: var(--green-dim); }
+    #notif-btn.denied  { color: var(--red);   border-color: rgba(244,63,94,0.3); }
   </style>
 </head>
 <body>
@@ -425,6 +437,7 @@
       <div class="conn-dot" id="conn-dot"></div>
       <span id="conn-label">Connecting…</span>
     </div>
+    <button id="notif-btn" title="Enable desktop notifications">🔔 Notifications</button>
     <div class="live-badge">
       <div class="live-dot"></div>
       LIVE
@@ -970,12 +983,15 @@ function connectSSE() {
       // Show toast for high-value events
       if (ev.type === 'new_user') {
         showToast('🆕', `New Client: ${ev.first_name || ev.username || 'User'}`, ev.detail || 'Just joined');
+        sendWebNotif('🆕 New Client', `${ev.first_name || ev.username || 'User'} just joined`, 'new_user');
       } else if (ev.type === 'deposit') {
         const depAmt = ev.detail ? ev.detail.split(' ')[0] : '';
         showToast('💰', `Deposit ${depAmt}`, `${ev.first_name || ev.username || 'User'} · ${ev.detail || ''}`);
+        sendWebNotif(`💰 Deposit ${depAmt}`, `${ev.first_name || ev.username || 'User'} · ${ev.detail || ''}`, 'deposit');
       } else if (ev.type === 'withdraw') {
         const wdAmt = ev.detail ? ev.detail.split(' ')[0] : '';
         showToast('🕊️', `Withdrawal ${wdAmt}`, `${ev.first_name || ev.username || 'User'} · ${ev.detail || ''}`);
+        sendWebNotif(`🕊️ Withdrawal ${wdAmt}`, `${ev.first_name || ev.username || 'User'}`, 'withdraw');
       }
       // Refresh stats on each event
       fetchStats();
@@ -1013,6 +1029,61 @@ function updateClock() {
 }
 setInterval(updateClock, 1000);
 updateClock();
+
+// ── Web Notifications ─────────────────────────────────────────
+const notifBtn = document.getElementById('notif-btn');
+
+function updateNotifBtn() {
+  if (!('Notification' in window)) {
+    notifBtn.textContent = '🔕 Not supported';
+    notifBtn.disabled = true;
+    return;
+  }
+  if (Notification.permission === 'granted') {
+    notifBtn.textContent = '🔔 Alerts ON';
+    notifBtn.className = 'granted';
+  } else if (Notification.permission === 'denied') {
+    notifBtn.textContent = '🔕 Blocked';
+    notifBtn.className = 'denied';
+    notifBtn.title = 'Notifications blocked. Please allow them in your browser settings.';
+  } else {
+    notifBtn.textContent = '🔔 Enable Alerts';
+    notifBtn.className = '';
+  }
+}
+
+function sendWebNotif(title, body, tag) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  // Only fire if tab is not visible (minimized / background)
+  const notif = new Notification(title, {
+    body,
+    tag,          // deduplicate same-type events
+    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📡</text></svg>",
+    badge: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📡</text></svg>",
+    silent: false,
+    requireInteraction: tag === 'deposit' || tag === 'withdraw', // keep deposit/withdrawal visible until clicked
+  });
+  notif.onclick = () => { window.focus(); notif.close(); };
+}
+
+notifBtn.addEventListener('click', async () => {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    const perm = await Notification.requestPermission();
+    updateNotifBtn();
+    if (perm === 'granted') {
+      sendWebNotif('📊 Monitor Active', 'You’ll now receive alerts for deposits, withdrawals & new clients!', 'info');
+    }
+  } else if (Notification.permission === 'granted') {
+    // Already granted — demo notification
+    sendWebNotif('📊 Alerts already enabled', 'You will be notified for all key events.', 'info');
+  } else {
+    // Denied — tell user how to fix it
+    alert('Notifications are blocked. Click the 🔒 icon in your browser address bar and allow notifications for this site.');
+  }
+});
+
+updateNotifBtn(); // set initial state on load
 
 // ── Boot ──────────────────────────────────────────────────────
 fetchStats();
