@@ -319,6 +319,34 @@
     }
     .client-time { font-size: 0.68rem; color: var(--muted); white-space: nowrap; }
 
+    /* ── Expandable deposit history ─────────────────────────── */
+    .client-row { cursor: pointer; }
+    .client-row .expand-arrow {
+      font-size: 0.7rem; color: var(--muted);
+      transition: transform 0.25s; display: inline-block;
+      margin-left: 4px;
+    }
+    .client-row.expanded .expand-arrow { transform: rotate(180deg); }
+    .deposit-history {
+      display: none;
+      background: rgba(0,242,254,0.03);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .deposit-history.open { display: block; }
+    .dep-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 20px 7px 56px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      font-size: 0.78rem;
+    }
+    .dep-row:last-child { border-bottom: none; }
+    .dep-amount {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700; color: var(--yellow); min-width: 80px;
+    }
+    .dep-detail { color: var(--muted2); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dep-time { color: var(--muted); font-size: 0.7rem; font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
+
     /* ── Event Type Donut ──────────────────────────────────── */
     .donut-wrap { padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
     .donut-svg { width: 140px; height: 140px; }
@@ -733,13 +761,15 @@ function loadClients() {
         const txns = data.deposit_count || 0;
         const depStr = dep > 0 ? `$${dep.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '—';
         const depClass = dep > 0 ? 'deposit-badge' : 'deposit-badge zero';
+        const hasDeposits = data.deposits && data.deposits.length > 0;
 
+        // Main client row
         const row = document.createElement('div');
         row.className = 'client-row';
         row.innerHTML = `
           <div class="avatar">${initials(name)}</div>
           <div class="client-info">
-            <div class="client-name">${flag} ${name}</div>
+            <div class="client-name">${flag} ${name}${hasDeposits ? ' <span class="expand-arrow">▼</span>' : ''}</div>
             <div class="client-uid">${handle} · ${ago(data.last_seen)}</div>
           </div>
           <div class="client-right">
@@ -747,7 +777,40 @@ function loadClients() {
             <div class="txn-count">${txns} txn${txns !== 1 ? 's' : ''}</div>
           </div>
         `;
+
+        // Deposit history panel (hidden by default)
+        const historyEl = document.createElement('div');
+        historyEl.className = 'deposit-history';
+
+        if (hasDeposits) {
+          // Sort deposits newest first
+          const sorted = [...data.deposits].sort((a, b) => new Date(b.ts) - new Date(a.ts));
+          sorted.forEach(dep => {
+            const depRow = document.createElement('div');
+            depRow.className = 'dep-row';
+            // Parse network from detail e.g. "$500.00 via USDT_TRC20 (TxID: abc123…)"
+            const network = dep.detail.includes(' via ') ? dep.detail.split(' via ')[1].split(' ')[0] : '';
+            const amtStr = `$${dep.amount.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+            const timeStr = dep.ts ? new Date(dep.ts.endsWith('Z') ? dep.ts : dep.ts+'Z').toLocaleString('en-GB', {
+              day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit', hour12:false
+            }) : '';
+            depRow.innerHTML = `
+              <div class="dep-amount">💰 ${amtStr}</div>
+              <div class="dep-detail">${network || dep.detail}</div>
+              <div class="dep-time">${timeStr}</div>
+            `;
+            historyEl.appendChild(depRow);
+          });
+
+          // Toggle on click
+          row.addEventListener('click', () => {
+            const open = historyEl.classList.toggle('open');
+            row.classList.toggle('expanded', open);
+          });
+        }
+
         body.appendChild(row);
+        body.appendChild(historyEl);
       });
     })
     .catch(() => {});

@@ -210,18 +210,22 @@ def api_clients():
                     "last_seen": row.get("ts", ""),
                     "total_deposited": 0.0,
                     "deposit_count": 0,
-                    "last_deposit": None,
+                    "deposits": [],
                 }
             # Parse deposit amount from detail string e.g. "$500.00 via USDT_TRC20 ..."
             if row.get("event_type") == "deposit":
                 detail = row.get("detail", "")
+                ts = row.get("ts", "")
                 try:
-                    # Extract dollar amount: "$500.00 via ..."
                     amt_str = detail.split("$")[1].split(" ")[0].replace(",", "")
-                    clients[uid]["total_deposited"] += float(amt_str)
+                    amt = float(amt_str)
+                    clients[uid]["total_deposited"] += amt
                     clients[uid]["deposit_count"] += 1
-                    if not clients[uid]["last_deposit"]:
-                        clients[uid]["last_deposit"] = detail
+                    clients[uid]["deposits"].append({
+                        "amount": amt,
+                        "detail": detail,
+                        "ts": ts,
+                    })
                 except Exception:
                     pass
 
