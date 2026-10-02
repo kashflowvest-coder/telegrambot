@@ -347,6 +347,29 @@
     .dep-detail { color: var(--muted2); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .dep-time { color: var(--muted); font-size: 0.7rem; font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
 
+    /* ── Search bar ──────────────────────────────────────── */
+    .search-wrap { padding: 8px 16px; border-bottom: 1px solid var(--border); }
+    .client-search {
+      width: 100%; padding: 6px 12px; border-radius: 8px;
+      border: 1px solid var(--border); background: rgba(255,255,255,0.04);
+      color: var(--text); font-family: inherit; font-size: 0.8rem;
+      outline: none; transition: border-color 0.2s;
+    }
+    .client-search::placeholder { color: var(--muted); }
+    .client-search:focus { border-color: var(--cyan); }
+
+    /* ── Withdrawal row ─────────────────────────────────────── */
+    .dep-amount.wd { color: var(--orange); }
+    .dep-copy {
+      background: none; border: none; cursor: pointer; padding: 0 4px;
+      color: var(--muted); font-size: 0.75rem; transition: color 0.2s;
+    }
+    .dep-copy:hover { color: var(--cyan); }
+
+    /* ── Stat counter animation ──────────────────────────────── */
+    .stat-value { transition: color 0.3s; }
+    .stat-value.flash { color: var(--cyan) !important; }
+
     /* ── Event Type Donut ──────────────────────────────────── */
     .donut-wrap { padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
     .donut-svg { width: 140px; height: 140px; }
@@ -492,10 +515,13 @@
           <div class="panel-title">👥 Clients &amp; Deposits</div>
           <span class="panel-badge" id="client-count">0</span>
         </div>
+        <div class="search-wrap">
+          <input class="client-search" id="client-search" type="text" placeholder="🔍 Search by name or @handle…">
+        </div>
         <div class="client-table-header">
           <span>Client</span>
           <span>Txns</span>
-          <span>Total Dep.</span>
+          <span>Net Balance</span>
         </div>
         <div id="client-list-body">
           <div class="feed-empty" id="client-empty" style="height:120px">
@@ -714,8 +740,116 @@ function addFeedItem(ev) {
 
 // ── Client Sidebar (live feed updates) ──────────────────────
 function updateClientEntry(ev) {
-  // Just trigger a reload from the API when a new event comes in
   loadClients();
+}
+
+// ── Helpers ──────────────────────────────────────────────────
+let _allClients = [];
+
+function copyToClipboard(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓';
+    btn.style.color = 'var(--green)';
+    setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 1500);
+  }).catch(() => {});
+}
+
+function renderClientRows(clients) {
+  const body = document.getElementById('client-list-body');
+  body.querySelectorAll('.client-row, .deposit-history').forEach(el => el.remove());
+  const empty = document.getElementById('client-empty');
+  if (clients.length === 0) {
+    if (!empty) {
+      body.innerHTML = `<div class="feed-empty" id="client-empty" style="height:120px">
+        <div class="empty-icon" style="font-size:1.8rem">👤</div>
+        <div>No matches</div></div>`;
+    }
+    return;
+  }
+  if (empty) empty.remove();
+
+  clients.slice(0, MAX_CLIENTS).forEach(data => {
+    const name = data.first_name || data.username || `User ${data.user_id}`;
+    const handle = data.username ? `@${data.username}` : `#${data.user_id}`;
+    let flag = '';
+    if (data.lang) {
+      const c = data.lang.toLowerCase();
+      if (c.startsWith('en')) flag = '🇬🇧';
+      else if (c.startsWith('pl')) flag = '🇵🇱';
+      else if (c.startsWith('ru')) flag = '🇷🇺';
+      else if (c.startsWith('uk')) flag = '🇺🇦';
+      else if (c.startsWith('fr')) flag = '🇫🇷';
+      else if (c.startsWith('de')) flag = '🇩🇪';
+      else if (c.startsWith('es')) flag = '🇪🇸';
+      else if (c.startsWith('zh')) flag = '🇨🇳';
+    }
+
+    const net = data.net_balance || 0;
+    const txns = (data.deposit_count || 0) + (data.withdrawal_count || 0);
+    const netStr = net > 0 ? `$${net.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}` : (net < 0 ? `-$${Math.abs(net).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}` : '—');
+    const netClass = net > 0 ? 'deposit-badge' : (net < 0 ? 'deposit-badge' : 'deposit-badge zero');
+    const netStyle = net < 0 ? 'style="color:var(--orange)"' : '';
+    const hasHistory = (data.deposits && data.deposits.length > 0) || (data.withdrawals && data.withdrawals.length > 0);
+
+    const row = document.createElement('div');
+    row.className = 'client-row';
+    row.dataset.search = (name + handle).toLowerCase();
+    row.innerHTML = `
+      <div class="avatar">${initials(name)}</div>
+      <div class="client-info">
+        <div class="client-name">${flag} ${name}${hasHistory ? ' <span class="expand-arrow">▼</span>' : ''}</div>
+        <div class="client-uid">${handle} · ${ago(data.last_seen)}</div>
+      </div>
+      <div class="client-right">
+        <div class="${netClass}" ${netStyle}>${netStr}</div>
+        <div class="txn-count">${txns} txn${txns !== 1 ? 's' : ''}</div>
+      </div>
+    `;
+
+    const historyEl = document.createElement('div');
+    historyEl.className = 'deposit-history';
+
+    if (hasHistory) {
+      // Combine deposits + withdrawals, sort newest first
+      const allTx = [
+        ...(data.deposits || []).map(d => ({...d, kind: 'dep'})),
+        ...(data.withdrawals || []).map(w => ({...w, kind: 'wd'})),
+      ].sort((a, b) => new Date(b.ts) - new Date(a.ts));
+
+      allTx.forEach(tx => {
+        const depRow = document.createElement('div');
+        depRow.className = 'dep-row';
+        const network = tx.detail && tx.detail.includes(' via ') ? tx.detail.split(' via ')[1].split(' ')[0] : (tx.detail || '');
+        const amtStr = `$${tx.amount.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+        const timeStr = tx.ts ? new Date(tx.ts.endsWith('Z') ? tx.ts : tx.ts+'Z').toLocaleString('en-GB', {
+          day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit', hour12:false
+        }) : '';
+        const icon = tx.kind === 'dep' ? '💰' : '🕊️';
+        const amtClass = tx.kind === 'dep' ? 'dep-amount' : 'dep-amount wd';
+
+        depRow.innerHTML = `
+          <div class="${amtClass}">${icon} ${amtStr}</div>
+          <div class="dep-detail">${network}</div>
+          <button class="dep-copy" title="Copy network">📋</button>
+          <div class="dep-time">${timeStr}</div>
+        `;
+        depRow.querySelector('.dep-copy').addEventListener('click', e => {
+          e.stopPropagation();
+          copyToClipboard(network, e.target);
+        });
+        historyEl.appendChild(depRow);
+      });
+
+      row.addEventListener('click', () => {
+        const open = historyEl.classList.toggle('open');
+        row.classList.toggle('expanded', open);
+      });
+    }
+
+    body.appendChild(row);
+    body.appendChild(historyEl);
+  });
 }
 
 // ── Load Clients from API ────────────────────────────────────
@@ -724,97 +858,51 @@ function loadClients() {
     .then(r => r.json())
     .then(clients => {
       if (!Array.isArray(clients)) return;
-      const body = document.getElementById('client-list-body');
-      // Remove old rows
-      body.querySelectorAll('.client-row').forEach(el => el.remove());
-      const empty = document.getElementById('client-empty');
-      if (clients.length === 0) return;
-      if (empty) empty.remove();
+      _allClients = clients;
       document.getElementById('client-count').textContent = clients.length;
 
-      // Calculate and display total volume
+      // Animated volume update
       const totalVol = clients.reduce((sum, c) => sum + (c.total_deposited || 0), 0);
       const volEl = document.getElementById('stat-volume');
       if (volEl) {
-        volEl.textContent = totalVol > 0
+        const newText = totalVol > 0
           ? `$${totalVol.toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0})}`
           : '$0';
+        if (volEl.textContent !== newText) {
+          volEl.textContent = newText;
+          volEl.classList.add('flash');
+          setTimeout(() => volEl.classList.remove('flash'), 600);
+        }
       }
 
-      clients.slice(0, MAX_CLIENTS).forEach(data => {
-        const name = data.first_name || data.username || `User ${data.user_id}`;
-        const handle = data.username ? `@${data.username}` : `#${data.user_id}`;
-        // Country flag from lang
-        let flag = '';
-        if (data.lang) {
-          const c = data.lang.toLowerCase();
-          if (c.startsWith('en')) flag = '🇬🇧';
-          else if (c.startsWith('pl')) flag = '🇵🇱';
-          else if (c.startsWith('ru')) flag = '🇷🇺';
-          else if (c.startsWith('uk')) flag = '🇺🇦';
-          else if (c.startsWith('fr')) flag = '🇫🇷';
-          else if (c.startsWith('de')) flag = '🇩🇪';
-          else if (c.startsWith('es')) flag = '🇪🇸';
-          else if (c.startsWith('zh')) flag = '🇨🇳';
-        }
-        const dep = data.total_deposited || 0;
-        const txns = data.deposit_count || 0;
-        const depStr = dep > 0 ? `$${dep.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}` : '—';
-        const depClass = dep > 0 ? 'deposit-badge' : 'deposit-badge zero';
-        const hasDeposits = data.deposits && data.deposits.length > 0;
+      // Apply current search filter
+      const q = (document.getElementById('client-search')?.value || '').toLowerCase().trim();
+      const filtered = q ? clients.filter(c => {
+        const name = (c.first_name || c.username || '').toLowerCase();
+        const handle = (c.username || '').toLowerCase();
+        return name.includes(q) || handle.includes(q) || String(c.user_id).includes(q);
+      }) : clients;
 
-        // Main client row
-        const row = document.createElement('div');
-        row.className = 'client-row';
-        row.innerHTML = `
-          <div class="avatar">${initials(name)}</div>
-          <div class="client-info">
-            <div class="client-name">${flag} ${name}${hasDeposits ? ' <span class="expand-arrow">▼</span>' : ''}</div>
-            <div class="client-uid">${handle} · ${ago(data.last_seen)}</div>
-          </div>
-          <div class="client-right">
-            <div class="${depClass}">${depStr}</div>
-            <div class="txn-count">${txns} txn${txns !== 1 ? 's' : ''}</div>
-          </div>
-        `;
-
-        // Deposit history panel (hidden by default)
-        const historyEl = document.createElement('div');
-        historyEl.className = 'deposit-history';
-
-        if (hasDeposits) {
-          // Sort deposits newest first
-          const sorted = [...data.deposits].sort((a, b) => new Date(b.ts) - new Date(a.ts));
-          sorted.forEach(dep => {
-            const depRow = document.createElement('div');
-            depRow.className = 'dep-row';
-            // Parse network from detail e.g. "$500.00 via USDT_TRC20 (TxID: abc123…)"
-            const network = dep.detail.includes(' via ') ? dep.detail.split(' via ')[1].split(' ')[0] : '';
-            const amtStr = `$${dep.amount.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
-            const timeStr = dep.ts ? new Date(dep.ts.endsWith('Z') ? dep.ts : dep.ts+'Z').toLocaleString('en-GB', {
-              day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit', hour12:false
-            }) : '';
-            depRow.innerHTML = `
-              <div class="dep-amount">💰 ${amtStr}</div>
-              <div class="dep-detail">${network || dep.detail}</div>
-              <div class="dep-time">${timeStr}</div>
-            `;
-            historyEl.appendChild(depRow);
-          });
-
-          // Toggle on click
-          row.addEventListener('click', () => {
-            const open = historyEl.classList.toggle('open');
-            row.classList.toggle('expanded', open);
-          });
-        }
-
-        body.appendChild(row);
-        body.appendChild(historyEl);
-      });
+      renderClientRows(filtered);
     })
     .catch(() => {});
 }
+
+// ── Search wire-up ───────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const searchEl = document.getElementById('client-search');
+  if (searchEl) {
+    searchEl.addEventListener('input', () => {
+      const q = searchEl.value.toLowerCase().trim();
+      const filtered = q ? _allClients.filter(c => {
+        const name = (c.first_name || c.username || '').toLowerCase();
+        const handle = (c.username || '').toLowerCase();
+        return name.includes(q) || handle.includes(q) || String(c.user_id).includes(q);
+      }) : _allClients;
+      renderClientRows(filtered);
+    });
+  }
+});
 
 // ── Toast ────────────────────────────────────────────────────
 function showToast(icon, title, sub, duration = 4500) {

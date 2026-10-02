@@ -211,8 +211,11 @@ def api_clients():
                     "total_deposited": 0.0,
                     "deposit_count": 0,
                     "deposits": [],
+                    "total_withdrawn": 0.0,
+                    "withdrawal_count": 0,
+                    "withdrawals": [],
                 }
-            # Parse deposit amount from detail string e.g. "$500.00 via USDT_TRC20 ..."
+            # Deposits
             if row.get("event_type") == "deposit":
                 detail = row.get("detail", "")
                 ts = row.get("ts", "")
@@ -221,15 +224,25 @@ def api_clients():
                     amt = float(amt_str)
                     clients[uid]["total_deposited"] += amt
                     clients[uid]["deposit_count"] += 1
-                    clients[uid]["deposits"].append({
-                        "amount": amt,
-                        "detail": detail,
-                        "ts": ts,
-                    })
+                    clients[uid]["deposits"].append({"amount": amt, "detail": detail, "ts": ts})
+                except Exception:
+                    pass
+            # Withdrawals
+            elif row.get("event_type") == "withdraw":
+                detail = row.get("detail", "")
+                ts = row.get("ts", "")
+                try:
+                    amt_str = detail.split("$")[1].split(" ")[0].replace(",", "")
+                    amt = float(amt_str)
+                    clients[uid]["total_withdrawn"] += amt
+                    clients[uid]["withdrawal_count"] += 1
+                    clients[uid]["withdrawals"].append({"amount": amt, "detail": detail, "ts": ts})
                 except Exception:
                     pass
 
-        # Sort by total deposited descending
+        # Add net balance and sort by total deposited descending
+        for c in clients.values():
+            c["net_balance"] = c["total_deposited"] - c["total_withdrawn"]
         result = sorted(clients.values(), key=lambda x: x["total_deposited"], reverse=True)
         return jsonify(result)
     except Exception as e:
